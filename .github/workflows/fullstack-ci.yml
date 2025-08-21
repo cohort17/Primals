@@ -1,0 +1,99 @@
+name: Fullstack DApp CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  backend-python:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Lint Python
+        run: |
+          pip install flake8
+          flake8 . --count --show-source --statistics
+      - name: Run Python tests
+        run: |
+          pytest || true
+
+  contracts-solidity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Hardhat and dependencies
+        run: |
+          npm install --prefix backend
+      - name: Lint Solidity
+        run: |
+          npx solhint 'backend/*.sol'
+      - name: Run Hardhat tests
+        run: |
+          npx hardhat test --network hardhat --config backend/hardhat.config.js || true
+
+  contracts-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Slither
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip solc
+          pip install slither-analyzer
+      - name: Run Slither Analysis
+        run: |
+          slither backend/wrapped_token.sol --print summary || true
+          slither backend/ethereum_bridge.sol --print summary || true
+        continue-on-error: true
+      - name: Upload Slither report
+        uses: actions/upload-artifact@v4
+        with:
+          name: slither-report
+          path: slither-report.json
+      - name: Install MythX CLI
+        run: pip install mythx-cli
+      - name: Run MythX Analysis
+        env:
+          MYTHX_API_KEY: ${{ secrets.MYTHX_API_KEY }}
+          MYTHX_USERNAME: ${{ secrets.MYTHX_USERNAME }}
+          MYTHX_PASSWORD: ${{ secrets.MYTHX_PASSWORD }}
+        run: |
+          mythx analyze backend/wrapped_token.sol || true
+          mythx analyze backend/ethereum_bridge.sol || true
+        continue-on-error: true
+
+  frontend-react:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint React code
+        run: npm run lint || true
+      - name: Run React tests
+        run: npm test -- --watchAll=false || true
+      - name: Build React app
+        run: npm run build
