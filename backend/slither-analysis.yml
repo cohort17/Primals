@@ -1,0 +1,12 @@
+version: 1
+analyze:
+  contracts:
+    - backend/wrapped_token.sol
+    - backend/ethereum_bridge.sol
+  slither:
+    enabled: true
+    options:
+      - "--print"
+      - "summary"
+      - "--json"
+      - "slither-report.json"
