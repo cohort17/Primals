@@ -1,0 +1,10 @@
+version: 1
+analyze:
+  contracts:
+    - backend/wrapped_token.sol
+    - backend/ethereum_bridge.sol
+  mythx:
+    enabled: true
+    apiKey: $MYTHX_API_KEY
+    username: $MYTHX_USERNAME
+    password: $MYTHX_PASSWORD
