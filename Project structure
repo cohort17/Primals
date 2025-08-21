@@ -1,0 +1,24 @@
+Primals/
+  backend/
+    minima_wallet.py
+    minima_nft.py
+    minima_bridge.py
+    wrapped_token.sol
+    ethereum_bridge.sol
+    parse_slither_report.py
+    slither-analysis.yml
+    mythx_analysis.yml
+    requirements.txt
+  frontend/
+    src/
+      components/
+        Wallet.js
+      utils/
+        validation.js
+    package.json
+  .github/
+    workflows/
+      fullstack-ci.yml
+      solidity-analysis.yml
+  SECURITY_CHECKLIST.md
+  README.md
