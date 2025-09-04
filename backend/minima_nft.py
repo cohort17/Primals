@@ -4,6 +4,7 @@ import re
 MINIMA_API = "http://127.0.0.1:9003"
 TOKEN_ID = "0xFA65DA403978B1E4B8A23FEA63BE27793660C1362000FF4042814C12911B1CCC"
 
+
 def is_valid_address(address):
      return (isinstance(address, str) and
      address.startswith("Mx") and
