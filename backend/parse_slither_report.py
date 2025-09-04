@@ -40,5 +40,6 @@ def parse_slither_report(report_file="slither-report.json"):
         print("-" * 40)
     print("--- End of Report ---")
 
+
 if __name__ == "__main__":
     parse_slither_report()
