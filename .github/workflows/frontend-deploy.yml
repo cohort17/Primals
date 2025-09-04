@@ -27,5 +27,5 @@ jobs:
         run: npm run build
       - name: Deploy to GitHub Pages
         env:
-          GH_TOKEN: ${{ secrets.https://github.com/cohort17/Primals.git }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run deploy
