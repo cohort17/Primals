@@ -10,4 +10,8 @@ def lock_tokens_for_bridge(address, amount, tokenid, bridge_address):
         "tokenid": tokenid,
         "state": "LOCKED_FOR_BRIDGE"
     }
-    return requests.post(MINIMA_API, json={"method": "send", **params}).json()
+    return requests.post(
+        MINIMA_API,
+        json={"method": "send", **params}
+    ).json()
+    
