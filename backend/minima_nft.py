@@ -6,13 +6,17 @@ TOKEN_ID = "0xFA65DA403978B1E4B8A23FEA63BE27793660C1362000FF4042814C12911B1CCC"
 
 
 def is_valid_address(address):
-     return ( isinstance(address, str) and
-             address.startswith("Mx") and
-             len(address) >= 30 )
+    return (
+        isinstance(address, str) and
+        address.startswith("Mx") and
+        len(address) >= 30
+    )
+
 
 def is_valid_tokenid(tokenid):
     r = re.compile(r"^0x[a-fA-F0-9]{64}$")
     return bool(r.match(tokenid))
+
 
 def call_minima(method, params=None):
     try:
@@ -25,6 +29,7 @@ def call_minima(method, params=None):
     except Exception as e:
         print(f"Error calling Minima: {e}")
         return {"error": str(e)}
+
 
 def mint_nft(owner_address, metadata, tokenid):
     if not is_valid_address(owner_address):
@@ -41,7 +46,10 @@ def mint_nft(owner_address, metadata, tokenid):
     }
     return call_minima("send", params)
 
+
 if __name__ == "__main__":
     owner = "Mx..."  # Replace with a valid Minima address
     metadata = "ipfs://Qm..."
+
     print(mint_nft(owner, metadata, TOKEN_ID))
+     
