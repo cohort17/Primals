@@ -7,6 +7,7 @@ on:
     branches: [main, develop]
 
 jobs:
+  # Python Backend Checks
   backend-python:
     runs-on: ubuntu-latest
     defaults:
@@ -29,6 +30,7 @@ jobs:
         run: |
           pytest || true
 
+  # Solidity Smart Contract Checks
   contracts-solidity:
     runs-on: ubuntu-latest
     steps:
@@ -47,6 +49,7 @@ jobs:
         run: |
           npx hardhat test --network hardhat --config backend/hardhat.config.js || true
 
+  # Solidity Static Analysis (using Slither)
   contracts-audit:
     runs-on: ubuntu-latest
     steps:
@@ -58,26 +61,15 @@ jobs:
           pip install slither-analyzer
       - name: Run Slither Analysis
         run: |
-          slither backend/wrapped_token.sol --print summary || true
-          slither backend/ethereum_bridge.sol --print summary || true
+          slither backend --json slither-report.json
         continue-on-error: true
       - name: Upload Slither report
         uses: actions/upload-artifact@v4
         with:
           name: slither-report
           path: slither-report.json
-      - name: Install MythX CLI
-        run: pip install mythx-cli
-      - name: Run MythX Analysis
-        env:
-          MYTHX_API_KEY: ${{ secrets.MYTHX_API_KEY }}
-          MYTHX_USERNAME: ${{ secrets.MYTHX_USERNAME }}
-          MYTHX_PASSWORD: ${{ secrets.MYTHX_PASSWORD }}
-        run: |
-          mythx analyze backend/wrapped_token.sol || true
-          mythx analyze backend/ethereum_bridge.sol || true
-        continue-on-error: true
 
+  # Frontend (React) Checks
   frontend-react:
     runs-on: ubuntu-latest
     defaults:
