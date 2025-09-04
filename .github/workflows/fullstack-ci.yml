@@ -33,6 +33,9 @@ jobs:
   # Solidity Smart Contract Checks
   contracts-solidity:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
@@ -40,14 +43,11 @@ jobs:
         with:
           node-version: '20'
       - name: Install Hardhat and dependencies
-        run: |
-          npm install --prefix backend
+        run: npm ci
       - name: Lint Solidity
-        run: |
-          npx solhint 'backend/*.sol'
+        run: npx solhint 'backend/*.sol'
       - name: Run Hardhat tests
-        run: |
-          npx hardhat test --network hardhat --config backend/hardhat.config.js || true
+        run: npx hardhat test --network hardhat --config hardhat.config.js || true
 
   # Solidity Static Analysis (using Slither)
   contracts-audit:
@@ -89,3 +89,4 @@ jobs:
         run: npm test -- --watchAll=false || true
       - name: Build React app
         run: npm run build
+        
