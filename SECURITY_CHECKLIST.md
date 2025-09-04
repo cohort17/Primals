@@ -9,7 +9,7 @@
 ## Solidity Contracts
 - [ ] Linting (solhint)
 - [ ] Unit tests (Hardhat)
-- [ ] Static analysis (Slither, MythX)
+- [ ] Static analysis (Slither)
 - [ ] Artifact upload for audit logs
 
 ## React Frontend
