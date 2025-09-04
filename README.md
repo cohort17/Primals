@@ -10,7 +10,7 @@ A full-stack Minima & EVM cross-chain token, NFT, and DeFi project.
 - NFT minting/usage on Minima
 - Cross-chain bridge logic (Minima <-> Ethereum/EVM)
 - EVM Solidity contracts (wrapped token, bridge)
-- Automated CI/CD & security auditing (Slither, MythX, Python/React lint/test)
+- Automated CI/CD & security auditing (Slither,Python/React lint/test)
 - Security checklist
 
 ## Setup
