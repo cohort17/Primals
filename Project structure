@@ -7,7 +7,6 @@ Primals/
     ethereum_bridge.sol
     parse_slither_report.py
     slither-analysis.yml
-    mythx_analysis.yml
     requirements.txt
   frontend/
     src/
