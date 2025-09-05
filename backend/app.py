@@ -1,92 +1,85 @@
 from flask import Flask, jsonify, request
-from flask_cors import CORS # Import CORS to fix the "Failed to fetch" error
+from flask_cors import CORS
 import os
+import json
 import firebase_admin
 from firebase_admin import credentials, firestore
 
 # --- Firebase Configuration (Provided by Canvas) ---
-# NOTE: In a real environment, these would be loaded from environment variables.
-# The `__firebase_config` variable is provided by the canvas environment.
 __firebase_config = '{}'
-# The `__app_id` variable is provided by the canvas environment.
 __app_id = 'your-app-id'
 
 # Use this path for public collections, as defined by Firestore security rules.
-# This ensures data is accessible to anyone.
 PUBLIC_COLLECTION_PATH = f"artifacts/{__app_id}/public/data"
 
 # --- Firebase Initialization ---
 try:
     firebase_config = json.loads(__firebase_config)
-    # The `firebase-admin` library needs a service account credential.
-    # For local development, you would set the GOOGLE_APPLICATION_CREDENTIALS
-    # environment variable.
-    # Here, we will try to initialize with the provided config.
     cred = credentials.Certificate(firebase_config)
     firebase_admin.initialize_app(cred)
     print("Firebase initialized successfully.")
 except (json.JSONDecodeError, ValueError, KeyError, Exception) as e:
     print(f"Failed to initialize Firebase: {e}")
-    # In a real application, you might exit or handle this error more gracefully.
 
 db = firestore.client()
 
 # Import other modules
 from minima_wallet import MinimaWallet
-from minima_bridge import MinimaBridge
-# from minima_nft_marketplace import NFTMarketplace # We will replace this with a Firestore-based class
+from minima_nft_marketplace import NFTMarketplace
+# We will use our own Firestore-integrated bridge class
 
-class FirestoreNFTMarketplace:
+class FirestoreMinimaBridge:
     """
-    Manages NFT listings using a Firestore database for persistent storage.
+    Manages bridge transactions using a Firestore database for persistent storage.
     """
     def __init__(self, db_client):
         self.db = db_client
-        self.listings_ref = self.db.collection(PUBLIC_COLLECTION_PATH).document('marketplace').collection('listings')
+        self.transactions_ref = self.db.collection(PUBLIC_COLLECTION_PATH).document('bridge').collection('transactions')
 
-    def list_nft_for_sale(self, token_id, owner_address, price):
+    def start_bridging_process(self, token_id, amount, evm_address):
         """
-        Creates a new NFT listing document in Firestore.
+        Simulates the start of a bridge process and saves it to Firestore.
         """
         try:
-            new_listing_ref = self.listings_ref.document()
-            listing_data = {
+            new_tx_ref = self.transactions_ref.document()
+            tx_data = {
                 "token_id": token_id,
-                "owner_address": owner_address,
-                "price": price,
-                "status": "for_sale",
-                "createdAt": firestore.SERVER_TIMESTAMP
+                "amount": amount,
+                "evm_address": evm_address,
+                "status": "pending",
+                "createdAt": firestore.SERVER_TIMESTAMP,
+                "transactionId": new_tx_ref.id
             }
-            new_listing_ref.set(listing_data)
-            print(f"NFT {token_id} listed for sale in Firestore.")
-            return {"id": new_listing_ref.id, **listing_data}
+            new_tx_ref.set(tx_data)
+            print(f"Bridge transaction for {amount} of {token_id} initiated and saved to Firestore.")
+            return tx_data
         except Exception as e:
-            print(f"Failed to list NFT in Firestore: {e}")
+            print(f"Failed to start bridge transaction: {e}")
             return None
 
-    def get_all_listings(self):
+    def get_transaction_status(self, transaction_id):
         """
-        Retrieves all active NFT listings from Firestore.
+        Retrieves the status of a bridge transaction from Firestore.
         """
         try:
-            listings = []
-            docs = self.listings_ref.stream()
-            for doc in docs:
-                data = doc.to_dict()
-                listings.append({"id": doc.id, **data})
-            return listings
+            doc_ref = self.transactions_ref.document(transaction_id)
+            doc = doc_ref.get()
+            if doc.exists:
+                return {"id": doc.id, **doc.to_dict()}
+            else:
+                return None
         except Exception as e:
-            print(f"Failed to retrieve listings from Firestore: {e}")
-            return []
+            print(f"Failed to retrieve transaction status: {e}")
+            return None
 
 # Initialize Flask and our core modules with the Firestore client
 app = Flask(__name__)
-# Enable CORS for all routes and origins
 CORS(app)
 wallet = MinimaWallet()
-marketplace = FirestoreNFTMarketplace(db)
+marketplace = NFTMarketplace()
+bridge = FirestoreMinimaBridge(db) # Use the new Firestore-based bridge class
 
-# WALLET ENDPOINTS (remain unchanged from before)
+# WALLET ENDPOINTS (unchanged)
 # -----------------------------------------------------------------------------
 @app.route('/api/wallet/balance', methods=['GET'])
 def get_wallet_balance():
@@ -109,33 +102,34 @@ def send_transaction():
         return jsonify(result)
     return jsonify({"error": "Transaction failed"}), 500
 
-# NEW: FIRESTORE-INTEGRATED MARKETPLACE ENDPOINTS
+# NEW: FIRESTORE-INTEGRATED BRIDGE ENDPOINTS
 # -----------------------------------------------------------------------------
-@app.route('/api/marketplace/listings', methods=['GET'])
-def get_all_listings():
-    """Returns a list of all current NFT listings from Firestore."""
-    listings = marketplace.get_all_listings()
-    return jsonify({"listings": listings})
-
-@app.route('/api/marketplace/list-nft', methods=['POST'])
-def list_nft():
+@app.route('/api/bridge/start', methods=['POST'])
+def start_bridge_process():
     """
-    Lists an NFT for sale by adding it to Firestore.
-    Requires 'token_id', 'owner_address', and 'price' in the JSON body.
+    Initiates the cross-chain bridging process and logs it to Firestore.
+    Requires a JSON body with 'token_id', 'amount', and 'evm_address'.
     """
     data = request.get_json()
     token_id = data.get('token_id')
-    owner_address = data.get('owner_address')
-    price = data.get('price')
-    
-    if not all([token_id, owner_address, price]):
+    amount = data.get('amount')
+    evm_address = data.get('evm_address')
+    if not all([token_id, amount, evm_address]):
         return jsonify({"error": "Missing required parameters"}), 400
-        
-    listing = marketplace.list_nft_for_sale(token_id, owner_address, price)
-    if listing:
-        return jsonify(listing), 201
-    return jsonify({"error": "Failed to list NFT"}), 500
+    result = bridge.start_bridging_process(token_id, amount, evm_address)
+    if result:
+        return jsonify({"message": "Bridge process initiated", "transaction": result}), 201
+    return jsonify({"error": "Failed to start bridging process"}), 500
+
+@app.route('/api/bridge/status/<string:transaction_id>', methods=['GET'])
+def get_bridge_status(transaction_id):
+    """
+    Returns the current status of a bridge transaction from Firestore.
+    """
+    status = bridge.get_transaction_status(transaction_id)
+    if status:
+        return jsonify({"status": status})
+    return jsonify({"error": "Transaction not found"}), 404
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
-    
