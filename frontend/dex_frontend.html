@@ -3,17 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Primals Decentralized Exchange</title>
+    <title>Primals Decentralized Exchange (DEX)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: Warm Neutrals -->
-    <!-- Application Structure Plan: The application is structured as a two-column dashboard with a central content area. This design was chosen to group related functionalities: swapping tokens in one section and managing liquidity in another. This clear separation of tasks prevents user confusion and makes the application intuitive to navigate. The central display for reserves and price provides a constant, easy-to-read reference for the state of the DEX. -->
-    <!-- Visualization & Content Choices: The core interaction is the simulation of token swaps and liquidity provision. Simple form inputs are used for user interaction. The display of current reserves and price dynamically updates based on user actions, providing immediate feedback. A status message provides confirmation or error handling. No complex charts are needed as the core function is the input/output of token amounts. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.ethers.io/5.7.2/ethers.umd.min.js" defer></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #FDFBF8; /* Warm off-white */
+            background-color: #FDFBF8;
             color: #4B4B4B;
         }
         .card {
@@ -23,7 +20,7 @@
             border-radius: 1.5rem;
         }
         .btn-primary {
-            background-color: #A08C7D; /* Muted brown */
+            background-color: #A08C7D;
             color: #FFFFFF;
             transition: background-color 0.3s, transform 0.2s;
             border-radius: 0.75rem;
@@ -32,9 +29,6 @@
             background-color: #8A7667;
             transform: translateY(-2px);
         }
-        .btn-primary:active {
-            transform: translateY(0);
-        }
         .input-field {
             border: 1px solid #E5DED6;
             background-color: #FFFCF9;
@@ -42,145 +36,170 @@
     </style>
 </head>
 <body class="antialiased p-4 sm:p-8 lg:p-12">
-    <div class="container mx-auto max-w-5xl">
+    <div class="container mx-auto max-w-2xl">
         <div class="text-center mb-10">
-            <h1 class="text-3xl font-bold text-[#A08C7D]">Primals Decentralized Exchange</h1>
-            <p class="text-md text-gray-500 mt-2">Swap tokens or add liquidity to the pool.</p>
+            <h1 class="text-3xl font-bold text-[#A08C7D]">Primals DEX</h1>
+            <p class="text-md text-gray-500 mt-2">Swap tokens and provide liquidity in a decentralized way.</p>
+        </div>
+
+        <!-- Wallet Connection Status -->
+        <div class="card p-6 sm:p-8 mb-6 text-center">
+            <h2 class="text-xl font-semibold mb-2">Wallet Connection</h2>
+            <div id="wallet-status" class="text-sm text-gray-600 mb-4">Not connected.</div>
+            <button id="connect-wallet-btn" class="btn-primary py-2 px-6">Connect Wallet</button>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- Swap Section -->
-            <div class="card p-6 sm:p-8 space-y-6">
-                <h2 class="text-xl font-semibold">Swap Tokens</h2>
-                <div class="space-y-4">
-                    <div>
-                        <label for="sell-amount" class="block text-sm font-medium text-gray-700">You sell</label>
-                        <input type="number" id="sell-amount" class="mt-1 block w-full rounded-lg input-field p-3 focus:border-[#A08C7D] focus:ring focus:ring-[#A08C7D] focus:ring-opacity-50" placeholder="0.0">
-                    </div>
-                    <div>
-                        <label for="receive-amount" class="block text-sm font-medium text-gray-700">You receive</label>
-                        <input type="number" id="receive-amount" class="mt-1 block w-full rounded-lg input-field p-3" readonly>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-medium text-gray-700">Current Price:</span>
-                        <span id="price-display" class="font-bold text-[#A08C7D]"></span>
-                    </div>
+            <!-- Add/Remove Liquidity Card -->
+            <div class="card p-6 sm:p-8 space-y-4">
+                <h3 class="text-xl font-semibold">Provide Liquidity</h3>
+                <div>
+                    <label for="liquidity-amount-a" class="block text-sm font-medium text-gray-700">Token A Amount (e.g., Minima)</label>
+                    <input type="number" id="liquidity-amount-a" class="mt-1 block w-full rounded-lg input-field p-3" placeholder="0.0" required>
                 </div>
-                <button id="swap-button" class="w-full btn-primary py-3 font-semibold text-lg">
-                    Swap
-                </button>
+                <div>
+                    <label for="liquidity-amount-b" class="block text-sm font-medium text-gray-700">Token B Amount (e.g., Your Token)</label>
+                    <input type="number" id="liquidity-amount-b" class="mt-1 block w-full rounded-lg input-field p-3" placeholder="0.0" required>
+                </div>
+                <button id="add-liquidity-btn" class="w-full btn-primary py-3 font-semibold text-lg">Add Liquidity</button>
             </div>
 
-            <!-- Liquidity Section -->
-            <div class="card p-6 sm:p-8 space-y-6">
-                <h2 class="text-xl font-semibold">Manage Liquidity</h2>
-                <div class="space-y-4">
-                    <div>
-                        <label for="liquidity-a" class="block text-sm font-medium text-gray-700">Amount of Token A</label>
-                        <input type="number" id="liquidity-a" class="mt-1 block w-full rounded-lg input-field p-3 focus:border-[#A08C7D] focus:ring focus:ring-[#A08C7D] focus:ring-opacity-50" placeholder="0.0">
-                    </div>
-                    <div>
-                        <label for="liquidity-b" class="block text-sm font-medium text-gray-700">Amount of Token B</label>
-                        <input type="number" id="liquidity-b" class="mt-1 block w-full rounded-lg input-field p-3 focus:border-[#A08C7D] focus:ring focus:ring-[#A08C7D] focus:ring-opacity-50" placeholder="0.0">
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-medium text-gray-700">Current Reserves:</span>
-                        <div class="text-right">
-                            <span id="reserve-a-display" class="font-semibold"></span>
-                            <br>
-                            <span id="reserve-b-display" class="font-semibold"></span>
-                        </div>
-                    </div>
+            <!-- Token Swap Card -->
+            <div class="card p-6 sm:p-8 space-y-4">
+                <h3 class="text-xl font-semibold">Swap Tokens</h3>
+                <div>
+                    <label for="swap-amount-in" class="block text-sm font-medium text-gray-700">Amount to Swap</label>
+                    <input type="number" id="swap-amount-in" class="mt-1 block w-full rounded-lg input-field p-3" placeholder="0.0" required>
                 </div>
-                <button id="add-liquidity-button" class="w-full btn-primary py-3 font-semibold text-lg">
-                    Add Liquidity
-                </button>
+                <div>
+                    <label for="swap-from-token" class="block text-sm font-medium text-gray-700">From Token</label>
+                    <input type="text" id="swap-from-token" class="mt-1 block w-full rounded-lg input-field p-3" placeholder="Paste Token A address" required>
+                </div>
+                <div>
+                    <label for="swap-to-token" class="block text-sm font-medium text-gray-700">To Token</label>
+                    <input type="text" id="swap-to-token" class="mt-1 block w-full rounded-lg input-field p-3" placeholder="Paste Token B address" required>
+                </div>
+                <button id="swap-btn" class="w-full btn-primary py-3 font-semibold text-lg">Swap Tokens</button>
             </div>
         </div>
 
-        <!-- Status/Feedback Area -->
         <div id="status-message" class="mt-8 text-center text-gray-600 font-medium">
-            Enter amounts to get started.
+            Ready to interact with the DEX.
         </div>
     </div>
 
     <script>
-        let reserves = {
-            'tokenA': 1000,
-            'tokenB': 1000
-        };
-        let k = reserves.tokenA * reserves.tokenB;
+        // --- Web3 Configuration & Globals ---
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        let connectedAccount;
 
-        const sellAmountInput = document.getElementById('sell-amount');
-        const receiveAmountInput = document.getElementById('receive-amount');
-        const swapButton = document.getElementById('swap-button');
-        const addLiquidityButton = document.getElementById('add-liquidity-button');
+        // --- Contract Information ---
+        // This is a placeholder address. You must replace it with the actual address
+        // of your DEX.sol contract after it's deployed.
+        const contractAddress = "0x0000000000000000000000000000000000000000"; 
+        
+        // This is a simplified ABI. It only includes the functions we need.
+        const contractABI = [
+            "function addLiquidity(uint _amountA, uint _amountB)",
+            "function swapTokens(address _fromToken, address _toToken, uint _amountIn)",
+            "function removeLiquidity(uint _liquidityAmount)",
+            "function getReserves() view returns (uint, uint)"
+        ];
+        
+        const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+        // --- UI Elements ---
+        const connectWalletBtn = document.getElementById('connect-wallet-btn');
+        const walletStatus = document.getElementById('wallet-status');
+        const addLiquidityBtn = document.getElementById('add-liquidity-btn');
+        const swapBtn = document.getElementById('swap-btn');
         const statusMessage = document.getElementById('status-message');
 
-        function updateUI() {
-            document.getElementById('price-display').textContent = (reserves.tokenB / reserves.tokenA).toFixed(4) + ' Token B per Token A';
-            document.getElementById('reserve-a-display').textContent = `Token A: ${reserves.tokenA.toFixed(2)}`;
-            document.getElementById('reserve-b-display').textContent = `Token B: ${reserves.tokenB.toFixed(2)}`;
-        }
+        // --- Helper Functions ---
+        const displayStatus = (message) => {
+            statusMessage.textContent = message;
+        };
 
-        function calculateAmountOut() {
-            const amountIn = parseFloat(sellAmountInput.value);
-            if (isNaN(amountIn) || amountIn <= 0) {
-                receiveAmountInput.value = '';
+        const checkWeb3 = () => {
+            if (typeof window.ethereum === 'undefined') {
+                walletStatus.textContent = "Web3 not detected. Please install MetaMask or another wallet.";
+                connectWalletBtn.disabled = true;
+            } else {
+                walletStatus.textContent = "Web3 detected. Click to connect.";
+            }
+        };
+
+        const connectWallet = async () => {
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                connectedAccount = accounts[0];
+                walletStatus.textContent = `Connected: ${connectedAccount.substring(0, 6)}...${connectedAccount.substring(38)}`;
+                connectWalletBtn.disabled = true;
+                displayStatus("Wallet connected successfully!");
+            } catch (error) {
+                console.error("User rejected wallet connection:", error);
+                displayStatus("Wallet connection failed.");
+            }
+        };
+
+        const addLiquidity = async () => {
+            if (!connectedAccount) {
+                displayStatus("Please connect your wallet first.");
                 return;
             }
-            const newReserveA = reserves.tokenA + amountIn;
-            const newReserveB = k / newReserveA;
-            const amountOut = reserves.tokenB - newReserveB;
-            receiveAmountInput.value = amountOut.toFixed(4);
-        }
-
-        function performSwap() {
-            const amountIn = parseFloat(sellAmountInput.value);
-            if (isNaN(amountIn) || amountIn <= 0 || amountIn >= reserves.tokenA) {
-                statusMessage.textContent = 'Invalid swap amount.';
-                return;
-            }
-
-            const newReserveA = reserves.tokenA + amountIn;
-            const newReserveB = k / newReserveA;
-            const amountOut = reserves.tokenB - newReserveB;
             
-            reserves.tokenA = newReserveA;
-            reserves.tokenB = newReserveB;
-            k = reserves.tokenA * reserves.tokenB;
-
-            statusMessage.textContent = `Successfully swapped ${amountIn.toFixed(2)} Token A for ${amountOut.toFixed(4)} Token B.`;
-            sellAmountInput.value = '';
-            receiveAmountInput.value = '';
-            updateUI();
-        }
-
-        function addLiquidity() {
-            const amountA = parseFloat(document.getElementById('liquidity-a').value);
-            const amountB = parseFloat(document.getElementById('liquidity-b').value);
-
-            if (isNaN(amountA) || isNaN(amountB) || amountA <= 0 || amountB <= 0) {
-                statusMessage.textContent = 'Invalid liquidity amounts.';
+            const amountA = document.getElementById('liquidity-amount-a').value;
+            const amountB = document.getElementById('liquidity-amount-b').value;
+            
+            if (amountA <= 0 || amountB <= 0) {
+                displayStatus("Please enter valid amounts.");
                 return;
             }
 
-            reserves.tokenA += amountA;
-            reserves.tokenB += amountB;
-            k = reserves.tokenA * reserves.tokenB;
+            displayStatus("Waiting for transaction confirmation...");
+            try {
+                const tx = await contract.addLiquidity(ethers.utils.parseEther(amountA), ethers.utils.parseEther(amountB));
+                const receipt = await tx.wait();
+                displayStatus(`Liquidity added! Transaction Hash: ${receipt.transactionHash}`);
+            } catch (error) {
+                console.error("Error adding liquidity:", error);
+                displayStatus(`Error: ${error.message || "Failed to add liquidity."}`);
+            }
+        };
 
-            statusMessage.textContent = `Successfully added ${amountA.toFixed(2)} Token A and ${amountB.toFixed(2)} Token B to the pool.`;
-            document.getElementById('liquidity-a').value = '';
-            document.getElementById('liquidity-b').value = '';
-            updateUI();
-        }
+        const swapTokens = async () => {
+            if (!connectedAccount) {
+                displayStatus("Please connect your wallet first.");
+                return;
+            }
 
-        sellAmountInput.addEventListener('input', calculateAmountOut);
-        swapButton.addEventListener('click', performSwap);
-        addLiquidityButton.addEventListener('click', addLiquidity);
+            const amountIn = document.getElementById('swap-amount-in').value;
+            const fromToken = document.getElementById('swap-from-token').value;
+            const toToken = document.getElementById('swap-to-token').value;
 
-        // Initial UI update
-        updateUI();
+            if (amountIn <= 0 || fromToken.length < 42 || toToken.length < 42) {
+                displayStatus("Please enter valid token amounts and addresses.");
+                return;
+            }
+
+            displayStatus("Waiting for transaction confirmation...");
+            try {
+                const tx = await contract.swapTokens(fromToken, toToken, ethers.utils.parseEther(amountIn));
+                const receipt = await tx.wait();
+                displayStatus(`Tokens swapped! Transaction Hash: ${receipt.transactionHash}`);
+            } catch (error) {
+                console.error("Error swapping tokens:", error);
+                displayStatus(`Error: ${error.message || "Failed to swap tokens."}`);
+            }
+        };
+
+        // --- Event Listeners ---
+        document.addEventListener('DOMContentLoaded', checkWeb3);
+        connectWalletBtn.addEventListener('click', connectWallet);
+        addLiquidityBtn.addEventListener('click', addLiquidity);
+        swapBtn.addEventListener('click', swapTokens);
+
     </script>
 </body>
 </html>
