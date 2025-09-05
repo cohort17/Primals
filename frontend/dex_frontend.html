@@ -49,6 +49,12 @@
             <button id="connect-wallet-btn" class="btn-primary py-2 px-6">Connect Wallet</button>
         </div>
 
+        <!-- DEX Pool Info -->
+        <div class="card p-6 sm:p-8 mb-6 text-center">
+            <h2 class="text-xl font-semibold mb-2">Current Pool Reserves</h2>
+            <p id="pool-reserves" class="text-lg font-bold text-gray-700">Loading...</p>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <!-- Add/Remove Liquidity Card -->
             <div class="card p-6 sm:p-8 space-y-4">
@@ -71,6 +77,9 @@
                     <label for="swap-amount-in" class="block text-sm font-medium text-gray-700">Amount to Swap</label>
                     <input type="number" id="swap-amount-in" class="mt-1 block w-full rounded-lg input-field p-3" placeholder="0.0" required>
                 </div>
+                <div class="mt-2 text-sm text-gray-500">
+                    Expected output: <span id="swap-output-display" class="font-bold">0</span>
+                </div>
                 <div>
                     <label for="swap-from-token" class="block text-sm font-medium text-gray-700">From Token</label>
                     <input type="text" id="swap-from-token" class="mt-1 block w-full rounded-lg input-field p-3" placeholder="Paste Token A address" required>
@@ -90,16 +99,11 @@
 
     <script>
         // --- Web3 Configuration & Globals ---
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        let connectedAccount;
-
-        // --- Contract Information ---
-        // This is a placeholder address. You must replace it with the actual address
-        // of your DEX.sol contract after it's deployed.
-        const contractAddress = "0x0000000000000000000000000000000000000000"; 
+        // Ensure this script block is after the ethers script tag with "defer".
+        let provider, signer, connectedAccount, contract, reservesA, reservesB;
         
-        // This is a simplified ABI. It only includes the functions we need.
+        // --- Contract Information ---
+        const contractAddress = "0x0000000000000000000000000000000000000000"; 
         const contractABI = [
             "function addLiquidity(uint _amountA, uint _amountB)",
             "function swapTokens(address _fromToken, address _toToken, uint _amountIn)",
@@ -107,14 +111,17 @@
             "function getReserves() view returns (uint, uint)"
         ];
         
-        const contract = new ethers.Contract(contractAddress, contractABI, signer);
-
+        const API_BASE_URL = 'http://127.0.0.1:5000/api';
+        
         // --- UI Elements ---
         const connectWalletBtn = document.getElementById('connect-wallet-btn');
         const walletStatus = document.getElementById('wallet-status');
         const addLiquidityBtn = document.getElementById('add-liquidity-btn');
         const swapBtn = document.getElementById('swap-btn');
         const statusMessage = document.getElementById('status-message');
+        const poolReservesDisplay = document.getElementById('pool-reserves');
+        const swapAmountIn = document.getElementById('swap-amount-in');
+        const swapOutputDisplay = document.getElementById('swap-output-display');
 
         // --- Helper Functions ---
         const displayStatus = (message) => {
@@ -127,6 +134,11 @@
                 connectWalletBtn.disabled = true;
             } else {
                 walletStatus.textContent = "Web3 detected. Click to connect.";
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                contract = new ethers.Contract(contractAddress, contractABI, signer);
+                // Start fetching reserves periodically
+                setInterval(fetchReserves, 5000); 
             }
         };
 
@@ -143,20 +155,50 @@
             }
         };
 
+        const fetchReserves = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/dex/reserves?token_a=minima&token_b=custom-token`);
+                if (response.ok) {
+                    const data = await response.json();
+                    reservesA = data.reserves.reserve_a;
+                    reservesB = data.reserves.reserve_b;
+                    poolReservesDisplay.textContent = `Token A: ${reservesA} | Token B: ${reservesB}`;
+                } else {
+                    poolReservesDisplay.textContent = "Reserves not found. Add liquidity to initialize.";
+                }
+            } catch (error) {
+                console.error("Error fetching reserves:", error);
+                poolReservesDisplay.textContent = "Failed to fetch reserves. Is the backend running?";
+            }
+        };
+
+        const calculateSwapOutput = () => {
+            const amountIn = parseFloat(swapAmountIn.value);
+            if (isNaN(amountIn) || amountIn <= 0 || !reservesA || !reservesB) {
+                swapOutputDisplay.textContent = "0";
+                return;
+            }
+            
+            // Simple constant product formula: x * y = k
+            // Output = (reserveB * amountIn) / (reserveA + amountIn)
+            const numerator = reservesB * amountIn;
+            const denominator = reservesA + amountIn;
+            const output = numerator / denominator;
+            
+            swapOutputDisplay.textContent = output.toFixed(4);
+        };
+
         const addLiquidity = async () => {
             if (!connectedAccount) {
                 displayStatus("Please connect your wallet first.");
                 return;
             }
-            
             const amountA = document.getElementById('liquidity-amount-a').value;
             const amountB = document.getElementById('liquidity-amount-b').value;
-            
             if (amountA <= 0 || amountB <= 0) {
                 displayStatus("Please enter valid amounts.");
                 return;
             }
-
             displayStatus("Waiting for transaction confirmation...");
             try {
                 const tx = await contract.addLiquidity(ethers.utils.parseEther(amountA), ethers.utils.parseEther(amountB));
@@ -173,16 +215,13 @@
                 displayStatus("Please connect your wallet first.");
                 return;
             }
-
             const amountIn = document.getElementById('swap-amount-in').value;
             const fromToken = document.getElementById('swap-from-token').value;
             const toToken = document.getElementById('swap-to-token').value;
-
             if (amountIn <= 0 || fromToken.length < 42 || toToken.length < 42) {
                 displayStatus("Please enter valid token amounts and addresses.");
                 return;
             }
-
             displayStatus("Waiting for transaction confirmation...");
             try {
                 const tx = await contract.swapTokens(fromToken, toToken, ethers.utils.parseEther(amountIn));
@@ -199,7 +238,9 @@
         connectWalletBtn.addEventListener('click', connectWallet);
         addLiquidityBtn.addEventListener('click', addLiquidity);
         swapBtn.addEventListener('click', swapTokens);
+        swapAmountIn.addEventListener('input', calculateSwapOutput);
 
     </script>
 </body>
-</html>
+    </html>
+    
