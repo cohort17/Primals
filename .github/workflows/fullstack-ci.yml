@@ -25,7 +25,7 @@ jobs:
       - name: Lint Python
         run: |
           pip install flake8
-          flake8 . --count --show-source --statistics
+          flake8 . --count --show-source --statistics --exclude=node_modules
       - name: Run Python tests
         run: |
           pytest || true
@@ -62,8 +62,7 @@ jobs:
           pip install slither-analyzer
       - name: Run Slither Analysis
         run: |
-          slither backend --json slither-report.json
-        continue-on-error: true
+          slither backend
       - name: Upload Slither report
         uses: actions/upload-artifact@v4
         with:
