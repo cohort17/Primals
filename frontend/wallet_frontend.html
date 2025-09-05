@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Primals Minima Wallet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: The application is designed as a simple dashboard with a card-based layout. This structure was chosen for its clarity and usability. The "Connect Wallet" and "Transaction" functionalities are placed in distinct cards, guiding the user through a logical flow. This design ensures that all relevant information is visible without overwhelming the user, making it ideal for a straightforward tool. -->
+    <!-- Visualization & Content Choices: The main content is quantitative data (balance) and textual feedback (status messages). No complex charts are needed. Simple buttons are used for the main interactions. The balance display updates dynamically, and the status message provides immediate feedback on user actions. This minimalist approach focuses on the core user task: managing funds. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF8;
+            color: #4B4B4B;
+        }
+        .card {
+            background-color: #FFFFFF;
+            border: 1px solid #F0EAE1;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-radius: 1.5rem;
+        }
+        .btn-primary {
+            background-color: #A08C7D;
+            color: #FFFFFF;
+            transition: background-color 0.3s, transform 0.2s;
+            border-radius: 0.75rem;
+        }
+        .btn-primary:hover {
+            background-color: #8A7667;
+            transform: translateY(-2px);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .input-field {
+            border: 1px solid #E5DED6;
+            background-color: #FFFCF9;
+        }
+    </style>
+</head>
+<body class="antialiased p-4 sm:p-8 lg:p-12">
+    <div class="container mx-auto max-w-xl">
+        <div class="text-center mb-10">
+            <h1 class="text-3xl font-bold text-[#A08C7D]">Primals Minima Wallet</h1>
+            <p class="text-md text-gray-500 mt-2">Manage your assets on the Minima blockchain.</p>
+        </div>
+
+        <div id="connect-card" class="card p-6 sm:p-8 text-center space-y-6">
+            <h2 class="text-xl font-semibold">Connect Your Wallet</h2>
+            <p class="text-gray-500">Connect to a local Minima node to view your balance and send transactions.</p>
+            <button id="connect-button" class="w-full btn-primary py-3 font-semibold text-lg">
+                Connect Wallet
+            </button>
+        </div>
+
+        <div id="wallet-card" class="card p-6 sm:p-8 space-y-6 hidden">
+            <h2 class="text-xl font-semibold">Wallet Overview</h2>
+            <div class="text-center">
+                <p class="text-lg text-gray-500">Current Balance</p>
+                <p id="balance-display" class="text-4xl font-bold text-[#A08C7D] mt-1">-- MINIMA</p>
+            </div>
+            
+            <div class="space-y-4">
+                <h3 class="text-lg font-semibold text-gray-700">Send Transaction</h3>
+                <div>
+                    <label for="recipient-address" class="block text-sm font-medium text-gray-700">Recipient Address</label>
+                    <input type="text" id="recipient-address" class="mt-1 block w-full rounded-lg input-field p-3 focus:border-[#A08C7D] focus:ring focus:ring-[#A08C7D] focus:ring-opacity-50" placeholder="Mx..." required>
+                </div>
+                <div>
+                    <label for="amount-to-send" class="block text-sm font-medium text-gray-700">Amount</label>
+                    <input type="number" id="amount-to-send" class="mt-1 block w-full rounded-lg input-field p-3 focus:border-[#A08C7D] focus:ring focus:ring-[#A08C7D] focus:ring-opacity-50" placeholder="0.0" required>
+                </div>
+            </div>
+
+            <button id="send-button" class="w-full btn-primary py-3 font-semibold text-lg">
+                Send Transaction
+            </button>
+        </div>
+        
+        <div id="status-message" class="mt-8 text-center text-gray-600 font-medium">
+            Ready to connect.
+        </div>
+    </div>
+
+    <script>
+        const connectButton = document.getElementById('connect-button');
+        const sendButton = document.getElementById('send-button');
+        const connectCard = document.getElementById('connect-card');
+        const walletCard = document.getElementById('wallet-card');
+        const balanceDisplay = document.getElementById('balance-display');
+        const recipientAddressInput = document.getElementById('recipient-address');
+        const amountToSendInput = document.getElementById('amount-to-send');
+        const statusMessage = document.getElementById('status-message');
+
+        let walletBalance = 0;
+        let isWalletConnected = false;
+
+        function updateBalanceDisplay() {
+            balanceDisplay.textContent = `${walletBalance.toFixed(2)} MINIMA`;
+        }
+
+        connectButton.addEventListener('click', () => {
+            connectCard.classList.add('hidden');
+            walletCard.classList.remove('hidden');
+            isWalletConnected = true;
+            walletBalance = 50.00; // Simulate initial balance
+            updateBalanceDisplay();
+            statusMessage.textContent = 'Wallet connected successfully!';
+        });
+
+        sendButton.addEventListener('click', () => {
+            if (!isWalletConnected) {
+                statusMessage.textContent = 'Please connect your wallet first.';
+                return;
+            }
+
+            const recipientAddress = recipientAddressInput.value.trim();
+            const amountToSend = parseFloat(amountToSendInput.value);
+
+            if (!recipientAddress || amountToSend <= 0 || amountToSend > walletBalance) {
+                statusMessage.textContent = 'Please enter a valid amount and recipient address.';
+                return;
+            }
+
+            // Simulate sending a transaction
+            statusMessage.textContent = `Sending ${amountToSend} MINIMA to ${recipientAddress}...`;
+
+            setTimeout(() => {
+                walletBalance -= amountToSend;
+                updateBalanceDisplay();
+                statusMessage.textContent = `Transaction successful! Sent ${amountToSend.toFixed(2)} MINIMA.`;
+                recipientAddressInput.value = '';
+                amountToSendInput.value = '';
+            }, 1500);
+        });
+    </script>
+</body>
+</html>
