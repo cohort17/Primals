@@ -82,4 +82,3 @@ def get_tx_history(address):
 
 if __name__ == "__main__":
     print("Balance:", get_balance(TOKEN_ID))
-    
