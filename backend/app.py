@@ -23,64 +23,63 @@ except (json.JSONDecodeError, ValueError, KeyError, Exception) as e:
 
 db = firestore.client()
 
-# Import other modules
+# --- Core Modules (including new DEX class) ---
 from minima_wallet import MinimaWallet
 from minima_nft_marketplace import NFTMarketplace
-# We will use our own Firestore-integrated bridge class
+from minima_bridge import MinimaBridge
+from custom_token import CustomToken
 
-class FirestoreMinimaBridge:
+class FirestoreDEX:
     """
-    Manages bridge transactions using a Firestore database for persistent storage.
+    Manages DEX data (reserves, liquidity) using Firestore.
     """
     def __init__(self, db_client):
         self.db = db_client
-        self.transactions_ref = self.db.collection(PUBLIC_COLLECTION_PATH).document('bridge').collection('transactions')
+        self.reserves_ref = self.db.collection(PUBLIC_COLLECTION_PATH).document('dex').collection('reserves')
 
-    def start_bridging_process(self, token_id, amount, evm_address):
+    def update_reserves(self, token_a, token_b, reserve_a, reserve_b):
         """
-        Simulates the start of a bridge process and saves it to Firestore.
+        Updates the reserves for a token pair in Firestore.
+        In a real application, this would be triggered by a contract event.
         """
         try:
-            new_tx_ref = self.transactions_ref.document()
-            tx_data = {
-                "token_id": token_id,
-                "amount": amount,
-                "evm_address": evm_address,
-                "status": "pending",
-                "createdAt": firestore.SERVER_TIMESTAMP,
-                "transactionId": new_tx_ref.id
-            }
-            new_tx_ref.set(tx_data)
-            print(f"Bridge transaction for {amount} of {token_id} initiated and saved to Firestore.")
-            return tx_data
+            doc_ref = self.reserves_ref.document(f"{token_a}-{token_b}")
+            doc_ref.set({
+                "token_a": token_a,
+                "token_b": token_b,
+                "reserve_a": reserve_a,
+                "reserve_b": reserve_b,
+                "updatedAt": firestore.SERVER_TIMESTAMP
+            })
+            print(f"Reserves for {token_a}-{token_b} updated in Firestore.")
         except Exception as e:
-            print(f"Failed to start bridge transaction: {e}")
-            return None
+            print(f"Failed to update DEX reserves: {e}")
 
-    def get_transaction_status(self, transaction_id):
+    def get_reserves(self, token_a, token_b):
         """
-        Retrieves the status of a bridge transaction from Firestore.
+        Retrieves the latest reserves for a token pair.
         """
         try:
-            doc_ref = self.transactions_ref.document(transaction_id)
+            doc_ref = self.reserves_ref.document(f"{token_a}-{token_b}")
             doc = doc_ref.get()
             if doc.exists:
-                return {"id": doc.id, **doc.to_dict()}
+                return doc.to_dict()
             else:
-                return None
+                return {"error": "Reserves not found for this token pair."}
         except Exception as e:
-            print(f"Failed to retrieve transaction status: {e}")
-            return None
+            print(f"Failed to get DEX reserves: {e}")
+            return {"error": "Failed to fetch reserves from database."}
 
-# Initialize Flask and our core modules with the Firestore client
+# Initialize Flask and all core modules with the Firestore client
 app = Flask(__name__)
 CORS(app)
 wallet = MinimaWallet()
 marketplace = NFTMarketplace()
-bridge = FirestoreMinimaBridge(db) # Use the new Firestore-based bridge class
+bridge = MinimaBridge()
+token = CustomToken()
+dex = FirestoreDEX(db)
 
-# WALLET ENDPOINTS (unchanged)
-# -----------------------------------------------------------------------------
+# --- WALLET ENDPOINTS (unchanged) ---
 @app.route('/api/wallet/balance', methods=['GET'])
 def get_wallet_balance():
     token_id = request.args.get('token_id', '0x00')
@@ -102,34 +101,42 @@ def send_transaction():
         return jsonify(result)
     return jsonify({"error": "Transaction failed"}), 500
 
-# NEW: FIRESTORE-INTEGRATED BRIDGE ENDPOINTS
-# -----------------------------------------------------------------------------
-@app.route('/api/bridge/start', methods=['POST'])
-def start_bridge_process():
+# --- NEW: DEX API ENDPOINTS ---
+@app.route('/api/dex/reserves', methods=['GET'])
+def get_dex_reserves():
     """
-    Initiates the cross-chain bridging process and logs it to Firestore.
-    Requires a JSON body with 'token_id', 'amount', and 'evm_address'.
+    Returns the current reserves for a token pair from Firestore.
+    Requires 'token_a' and 'token_b' query parameters.
+    """
+    token_a = request.args.get('token_a')
+    token_b = request.args.get('token_b')
+    if not token_a or not token_b:
+        return jsonify({"error": "Missing token_a or token_b query parameter"}), 400
+    
+    reserves = dex.get_reserves(token_a, token_b)
+    if reserves:
+        return jsonify({"reserves": reserves})
+    return jsonify({"error": "Failed to fetch reserves"}), 500
+
+@app.route('/api/dex/update-reserves', methods=['POST'])
+def update_dex_reserves():
+    """
+    Endpoint to manually update reserves (for testing).
+    In a real app, this would be an internal function or triggered by a webhook.
     """
     data = request.get_json()
-    token_id = data.get('token_id')
-    amount = data.get('amount')
-    evm_address = data.get('evm_address')
-    if not all([token_id, amount, evm_address]):
+    token_a = data.get('token_a')
+    token_b = data.get('token_b')
+    reserve_a = data.get('reserve_a')
+    reserve_b = data.get('reserve_b')
+    
+    if not all([token_a, token_b, reserve_a, reserve_b]):
         return jsonify({"error": "Missing required parameters"}), 400
-    result = bridge.start_bridging_process(token_id, amount, evm_address)
-    if result:
-        return jsonify({"message": "Bridge process initiated", "transaction": result}), 201
-    return jsonify({"error": "Failed to start bridging process"}), 500
 
-@app.route('/api/bridge/status/<string:transaction_id>', methods=['GET'])
-def get_bridge_status(transaction_id):
-    """
-    Returns the current status of a bridge transaction from Firestore.
-    """
-    status = bridge.get_transaction_status(transaction_id)
-    if status:
-        return jsonify({"status": status})
-    return jsonify({"error": "Transaction not found"}), 404
+    dex.update_reserves(token_a, token_b, reserve_a, reserve_b)
+    return jsonify({"message": "Reserves updated successfully"}), 200
+
 
 if __name__ == '__main__':
+    # This is a placeholder. A real deployment would use a production-ready server.
     app.run(debug=True, port=5000)
