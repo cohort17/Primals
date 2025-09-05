@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Primals NFT Gallery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: The application is structured as a single-page NFT gallery. A simple input and button at the top allow the user to simulate fetching NFTs for a specific address. Below this, a dynamic grid displays the NFT cards. This design was chosen for its simplicity and directness, as it focuses on the single user task of viewing their collection. The structure is intuitive and prevents information overload by only displaying the relevant NFTs. -->
+    <!-- Visualization & Content Choices: The core visualization is the NFT gallery, which uses a responsive grid layout. Each NFT is represented by a card containing a title and a simple text/emoji icon to represent the NFT's unique nature. A dynamic text block displays the token ID. This presentation is simple, effective, and aligns with the constraint of not using external images or complex libraries. The main interaction is data filtering and display, where user input (an address) triggers a dynamic update of the gallery content. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF8; /* Warm off-white */
+            color: #4B4B4B;
+        }
+        .card {
+            background-color: #FFFFFF;
+            border: 1px solid #F0EAE1;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-radius: 1rem;
+        }
+        .btn-primary {
+            background-color: #A08C7D; /* Muted brown */
+            color: #FFFFFF;
+            transition: background-color 0.3s, transform 0.2s;
+            border-radius: 0.5rem;
+        }
+        .btn-primary:hover {
+            background-color: #8A7667;
+            transform: translateY(-2px);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .input-field {
+            border: 1px solid #E5DED6;
+            background-color: #FFFCF9;
+        }
+    </style>
+</head>
+<body class="antialiased p-4 sm:p-6 lg:p-8">
+    <div class="container mx-auto max-w-5xl">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-[#A08C7D]">Primals NFT Gallery</h1>
+            <p class="text-md text-gray-500 mt-2">View your collection by entering your wallet address.</p>
+        </div>
+
+        <div class="card p-6 sm:p-8 space-y-4 mb-8 flex flex-col sm:flex-row items-center sm:space-x-4 sm:space-y-0">
+            <input type="text" id="address-input" class="w-full sm:w-2/3 rounded-md input-field p-3 focus:border-[#A08C7D] focus:ring focus:ring-[#A08C7D] focus:ring-opacity-50" placeholder="Enter your Minima address...">
+            <button id="view-nfts-button" class="w-full sm:w-1/3 btn-primary py-3 font-semibold text-lg">
+                View My NFTs
+            </button>
+        </div>
+
+        <div id="nft-gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div id="initial-message" class="col-span-1 sm:col-span-2 lg:col-span-3 text-center text-gray-500 py-16">
+                <p>Enter an address above to display NFTs.</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('view-nfts-button').addEventListener('click', displayNFTs);
+
+        const MOCK_NFT_DATA = {
+            'Mx1234...': [
+                { id: '0x123...abc', name: 'PrimalsGenesis', icon: '💎', description: 'The first NFT of the Primals collection.' },
+                { id: '0x456...def', name: 'PrimalsQuest', icon: '📜', description: 'An NFT awarded for completing a quest.' },
+                { id: '0x789...ghi', name: 'PrimalsExplorer', icon: '🧭', description: 'For those who venture into the unknown.' }
+            ],
+            'Mx5678...': [
+                { id: '0xabc...123', name: 'PrimalsWarrior', icon: '🛡️', description: 'A symbol of strength and resilience.' },
+                { id: '0xdef...456', name: 'PrimalsMage', icon: '🔮', description: 'For masters of the arcane arts.' }
+            ]
+        };
+
+        function displayNFTs() {
+            const addressInput = document.getElementById('address-input').value.trim();
+            const gallery = document.getElementById('nft-gallery');
+            const initialMessage = document.getElementById('initial-message');
+
+            const nfts = MOCK_NFT_DATA[addressInput] || [];
+
+            gallery.innerHTML = '';
+            
+            if (nfts.length === 0) {
+                gallery.innerHTML = '<div class="col-span-1 sm:col-span-2 lg:col-span-3 text-center text-gray-500 py-16"><p>No NFTs found for this address. Try "Mx1234..." or "Mx5678...".</p></div>';
+            } else {
+                nfts.forEach(nft => {
+                    const nftCard = document.createElement('div');
+                    nftCard.className = 'card p-4 text-center transform transition-transform duration-200 hover:scale-105 cursor-pointer';
+                    nftCard.innerHTML = `
+                        <div class="text-6xl mb-4">${nft.icon}</div>
+                        <h3 class="font-semibold text-xl truncate">${nft.name}</h3>
+                        <p class="text-gray-500 text-sm truncate mb-2">${nft.description}</p>
+                        <p class="text-xs text-gray-400 font-mono break-all">${nft.id}</p>
+                    `;
+                    gallery.appendChild(nftCard);
+                });
+            }
+        }
+    </script>
+</body>
+</html>
