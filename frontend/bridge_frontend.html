@@ -3,33 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Primals Bridge</title>
+    <title>Primals Cross-Chain Bridge</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #FDFBF8; /* Warm off-white */
+            background-color: #FDFBF8;
             color: #4B4B4B;
         }
         .card {
             background-color: #FFFFFF;
             border: 1px solid #F0EAE1;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            border-radius: 1rem;
+            border-radius: 1.5rem;
         }
         .btn-primary {
-            background-color: #A08C7D; /* Muted brown */
+            background-color: #A08C7D;
             color: #FFFFFF;
             transition: background-color 0.3s, transform 0.2s;
-            border-radius: 0.5rem;
+            border-radius: 0.75rem;
         }
         .btn-primary:hover {
             background-color: #8A7667;
             transform: translateY(-2px);
-        }
-        .btn-primary:active {
-            transform: translateY(0);
         }
         .input-field {
             border: 1px solid #E5DED6;
@@ -37,143 +34,139 @@
         }
     </style>
 </head>
-<body class="antialiased flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8">
-    <div class="container mx-auto max-w-2xl">
-        <div class="text-center mb-8">
+<body class="antialiased p-4 sm:p-8 lg:p-12">
+    <div class="container mx-auto max-w-xl">
+        <div class="text-center mb-10">
             <h1 class="text-3xl font-bold text-[#A08C7D]">Primals Cross-Chain Bridge</h1>
-            <p class="text-md text-gray-500 mt-2">Transfer your wMINIMA tokens to an EVM-compatible chain.</p>
+            <p class="text-md text-gray-500 mt-2">Transfer assets between Minima and EVM-compatible chains.</p>
         </div>
 
-        <div class="card p-6 sm:p-8 space-y-8">
-            <!-- Input Section -->
-            <div>
-                <h2 class="text-2xl font-semibold mb-4 text-center">Initiate Transfer</h2>
-                <div class="space-y-4">
-                    <div>
-                        <label for="amount-input" class="block text-sm font-medium text-gray-700">Amount (wMINIMA)</label>
-                        <input type="number" id="amount-input" class="mt-1 block w-full rounded-md input-field p-3 focus:border-[#A08C7D] focus:ring focus:ring-[#A08C7D] focus:ring-opacity-50" placeholder="e.g., 50.5" min="0.01" step="0.01">
-                        <p id="input-message" class="mt-2 text-sm text-red-500 hidden">Please enter a valid amount.</p>
-                    </div>
-                    <div>
-                        <label for="evm-address-input" class="block text-sm font-medium text-gray-700">EVM Recipient Address</label>
-                        <input type="text" id="evm-address-input" class="mt-1 block w-full rounded-md input-field p-3 focus:border-[#A08C7D] focus:ring focus:ring-[#A08C7D] focus:ring-opacity-50" placeholder="0x..." minlength="42" maxlength="42">
-                        <p id="address-message" class="mt-2 text-sm text-red-500 hidden">Please enter a valid EVM address.</p>
-                    </div>
-                    <button id="bridge-button" class="w-full btn-primary py-3 font-semibold text-lg">
-                        Bridge Tokens
-                    </button>
+        <div id="bridge-card" class="card p-6 sm:p-8 space-y-6">
+            <h2 class="text-xl font-semibold text-center">Initiate Bridge Transaction</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label for="token-id" class="block text-sm font-medium text-gray-700">Token ID</label>
+                    <input type="text" id="token-id" class="mt-1 block w-full rounded-lg input-field p-3" placeholder="e.g., 0x00" required>
+                </div>
+                <div>
+                    <label for="amount-to-bridge" class="block text-sm font-medium text-gray-700">Amount</label>
+                    <input type="number" id="amount-to-bridge" class="mt-1 block w-full rounded-lg input-field p-3" placeholder="0.0" required>
+                </div>
+                <div>
+                    <label for="evm-address" class="block text-sm font-medium text-gray-700">EVM Recipient Address</label>
+                    <input type="text" id="evm-address" class="mt-1 block w-full rounded-lg input-field p-3" placeholder="0x..." required>
                 </div>
             </div>
 
-            <hr class="border-gray-200">
+            <button id="bridge-button" class="w-full btn-primary py-3 font-semibold text-lg">
+                Start Bridge
+            </button>
+        </div>
 
-            <!-- Status Section -->
-            <div>
-                <h2 class="text-2xl font-semibold mb-4 text-center">Transfer Status</h2>
-                <div id="status-container" class="space-y-4">
-                    <div id="step-1" class="flex items-center text-gray-400">
-                        <span class="text-2xl mr-4">1️⃣</span>
-                        <div>
-                            <p class="font-semibold">Lock Tokens on Minima</p>
-                            <p class="text-sm">Awaiting user initiation...</p>
-                        </div>
-                    </div>
-                    <div id="step-2" class="flex items-center text-gray-400">
-                        <span class="text-2xl mr-4">2️⃣</span>
-                        <div>
-                            <p class="font-semibold">Relay Transaction to EVM</p>
-                            <p class="text-sm">...</p>
-                        </div>
-                    </div>
-                    <div id="step-3" class="flex items-center text-gray-400">
-                        <span class="text-2xl mr-4">3️⃣</span>
-                        <div>
-                            <p class="font-semibold">Mint Wrapped Tokens</p>
-                            <p class="text-sm">...</p>
-                        </div>
-                    </div>
+        <div class="card p-6 sm:p-8 mt-6 space-y-4">
+            <h2 class="text-xl font-semibold text-center">Check Transaction Status</h2>
+            <div class="space-y-4">
+                 <div>
+                    <label for="transaction-id" class="block text-sm font-medium text-gray-700">Transaction ID</label>
+                    <input type="text" id="transaction-id" class="mt-1 block w-full rounded-lg input-field p-3" placeholder="Paste transaction ID here" required>
                 </div>
-                <div id="success-message" class="hidden mt-6 text-center">
-                    <p class="text-green-600 font-bold text-lg">✅ Bridge Successful!</p>
-                </div>
+                 <button id="check-status-button" class="w-full btn-primary py-3 font-semibold text-lg">
+                    Check Status
+                </button>
             </div>
+            <div id="status-display" class="mt-4 p-4 rounded-lg bg-gray-100 hidden">
+                <p id="transaction-status-message" class="font-medium text-gray-700"></p>
+                <pre id="transaction-details" class="text-sm text-gray-500 mt-2"></pre>
+            </div>
+        </div>
+        
+        <div id="status-message" class="mt-8 text-center text-gray-600 font-medium">
+            Ready to bridge assets.
         </div>
     </div>
-    
+
     <script>
-        document.getElementById('bridge-button').addEventListener('click', startBridge);
+        const API_BASE_URL = 'http://127.0.0.1:5000/api';
+        const bridgeButton = document.getElementById('bridge-button');
+        const checkStatusButton = document.getElementById('check-status-button');
+        const tokenIdInput = document.getElementById('token-id');
+        const amountToBridgeInput = document.getElementById('amount-to-bridge');
+        const evmAddressInput = document.getElementById('evm-address');
+        const transactionIdInput = document.getElementById('transaction-id');
+        const statusMessage = document.getElementById('status-message');
+        const statusDisplay = document.getElementById('status-display');
+        const transactionStatusMessage = document.getElementById('transaction-status-message');
+        const transactionDetails = document.getElementById('transaction-details');
 
-        function resetStatus() {
-            const steps = [
-                { id: 'step-1', icon: '1️⃣', text: 'Awaiting user initiation...', color: 'text-gray-400' },
-                { id: 'step-2', icon: '2️⃣', text: '...', color: 'text-gray-400' },
-                { id: 'step-3', icon: '3️⃣', text: '...', color: 'text-gray-400' }
-            ];
+        bridgeButton.addEventListener('click', async () => {
+            const tokenId = tokenIdInput.value.trim();
+            const amount = parseFloat(amountToBridgeInput.value);
+            const evmAddress = evmAddressInput.value.trim();
 
-            steps.forEach(step => {
-                const element = document.getElementById(step.id);
-                element.classList.remove('text-green-600', 'text-red-500');
-                element.classList.add(step.color);
-                element.querySelector('span').textContent = step.icon;
-                element.querySelector('p:last-child').textContent = step.text;
-            });
-
-            document.getElementById('success-message').classList.add('hidden');
-            document.getElementById('input-message').classList.add('hidden');
-            document.getElementById('address-message').classList.add('hidden');
-        }
-
-        function updateStep(stepId, icon, text, color) {
-            const stepElement = document.getElementById(stepId);
-            stepElement.classList.remove('text-gray-400');
-            stepElement.classList.add(color);
-            stepElement.querySelector('span').textContent = icon;
-            stepElement.querySelector('p:last-child').textContent = text;
-        }
-
-        function startBridge() {
-            resetStatus();
-            const amountInput = document.getElementById('amount-input');
-            const addressInput = document.getElementById('evm-address-input');
-            const amount = parseFloat(amountInput.value);
-            const evmAddress = addressInput.value.trim();
-
-            if (isNaN(amount) || amount <= 0) {
-                document.getElementById('input-message').classList.remove('hidden');
+            if (!tokenId || !amount || !evmAddress) {
+                statusMessage.textContent = 'Please fill out all fields.';
                 return;
             }
 
-            if (!evmAddress || evmAddress.length !== 42 || !evmAddress.startsWith('0x')) {
-                 document.getElementById('address-message').classList.remove('hidden');
-                return;
-            }
-
-            // Step 1: Lock tokens on Minima
-            updateStep('step-1', '⏳', 'Initiating lock on Minima...', 'text-gray-400');
+            statusMessage.textContent = 'Starting bridge process...';
             
-            setTimeout(() => {
-                updateStep('step-1', '✅', 'Tokens successfully locked on Minima!', 'text-green-600');
-            }, 1500);
+            try {
+                const response = await fetch(`${API_BASE_URL}/bridge/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token_id: tokenId,
+                        amount: amount,
+                        evm_address: evmAddress
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    const txId = data.transaction.transactionId;
+                    statusMessage.textContent = `Bridge transaction initiated! ID: ${txId}.`;
+                    transactionIdInput.value = txId;
+                } else {
+                    throw new Error(data.error || 'Failed to start bridge transaction.');
+                }
+            } catch (error) {
+                statusMessage.textContent = `Error: ${error.message}`;
+                console.error('Bridge initiation error:', error);
+            }
+        });
 
-            // Step 2: Relay transaction
-            setTimeout(() => {
-                updateStep('step-2', '⏳', 'Relaying transaction to EVM...', 'text-gray-400');
-            }, 2000);
+        checkStatusButton.addEventListener('click', async () => {
+            const transactionId = transactionIdInput.value.trim();
+            if (!transactionId) {
+                statusMessage.textContent = 'Please enter a transaction ID.';
+                return;
+            }
 
-            setTimeout(() => {
-                updateStep('step-2', '✅', 'Transaction relayed to EVM network!', 'text-green-600');
-            }, 4000);
+            statusMessage.textContent = 'Checking transaction status...';
 
-            // Step 3: Mint wrapped tokens
-            setTimeout(() => {
-                updateStep('step-3', '⏳', 'Minting wrapped tokens on EVM...', 'text-gray-400');
-            }, 4500);
+            try {
+                const response = await fetch(`${API_BASE_URL}/bridge/status/${transactionId}`);
+                const data = await response.json();
+                
+                statusDisplay.classList.remove('hidden');
 
-            setTimeout(() => {
-                updateStep('step-3', '✅', 'Tokens minted and sent to your address!', 'text-green-600');
-                document.getElementById('success-message').classList.remove('hidden');
-            }, 6000);
-        }
+                if (response.ok) {
+                    const status = data.status;
+                    transactionStatusMessage.textContent = `Status: ${status.status}`;
+                    transactionDetails.textContent = JSON.stringify(status, null, 2);
+                    statusMessage.textContent = 'Status check successful.';
+                } else {
+                    transactionStatusMessage.textContent = `Error: ${data.error}`;
+                    transactionDetails.textContent = '';
+                    statusMessage.textContent = 'Transaction not found.';
+                }
+            } catch (error) {
+                statusMessage.textContent = `Error: ${error.message}`;
+                console.error('Status check error:', error);
+            }
+        });
+
     </script>
 </body>
 </html>
