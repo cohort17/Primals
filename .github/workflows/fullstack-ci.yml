@@ -70,8 +70,7 @@ jobs:
           sudo apt-get install -y solc python3-pip
           pip install slither-analyzer
       - name: Run Slither Analysis
-        run: |
-          slither backend
+        run: slither .
       - name: Upload Slither report
         uses: actions/upload-artifact@v4
         with:
