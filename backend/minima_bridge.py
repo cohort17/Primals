@@ -14,4 +14,3 @@ def lock_tokens_for_bridge(address, amount, tokenid, bridge_address):
         MINIMA_API,
         json={"method": "send", **params}
     ).json()
-    
