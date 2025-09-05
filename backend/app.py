@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS # Import CORS to fix the "Failed to fetch" error
 import os
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -31,7 +32,6 @@ except (json.JSONDecodeError, ValueError, KeyError, Exception) as e:
 db = firestore.client()
 
 # Import other modules
-# These now need to be modified to accept a Firestore client
 from minima_wallet import MinimaWallet
 from minima_bridge import MinimaBridge
 # from minima_nft_marketplace import NFTMarketplace # We will replace this with a Firestore-based class
@@ -81,6 +81,8 @@ class FirestoreNFTMarketplace:
 
 # Initialize Flask and our core modules with the Firestore client
 app = Flask(__name__)
+# Enable CORS for all routes and origins
+CORS(app)
 wallet = MinimaWallet()
 marketplace = FirestoreNFTMarketplace(db)
 
@@ -136,3 +138,4 @@ def list_nft():
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+    
