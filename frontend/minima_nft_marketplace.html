@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Primals NFT Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: The application uses a dashboard-like structure with two main sections: "My Collection" and the "Marketplace". This was chosen to clearly separate the user's personal assets from the public trading space. The layout guides the user logically from viewing their own NFTs to exploring what's available for sale. Key interactions are card-based, allowing users to click on an NFT to view details or trigger a bid form, making the process intuitive and straightforward. -->
+    <!-- Visualization & Content Choices: Content is presented using a grid of cards, a familiar pattern for marketplaces. Each card represents a single NFT, displaying its unique ID and simulated image. Forms are used for "List" and "Bid" interactions. The entire display is dynamic, updating with new listings and bids via JavaScript. There are no complex charts or graphics, as the focus is on a direct trading experience. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF8;
+            color: #4B4B4B;
+        }
+        .card {
+            background-color: #FFFFFF;
+            border: 1px solid #F0EAE1;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-radius: 1.5rem;
+        }
+        .btn-primary {
+            background-color: #A08C7D;
+            color: #FFFFFF;
+            transition: background-color 0.3s, transform 0.2s;
+            border-radius: 0.75rem;
+        }
+        .btn-primary:hover {
+            background-color: #8A7667;
+            transform: translateY(-2px);
+        }
+        .input-field {
+            border: 1px solid #E5DED6;
+            background-color: #FFFCF9;
+        }
+    </style>
+</head>
+<body class="antialiased p-4 sm:p-8 lg:p-12">
+    <div class="container mx-auto max-w-7xl">
+        <div class="text-center mb-10">
+            <h1 class="text-3xl font-bold text-[#A08C7D]">Primals NFT Marketplace</h1>
+            <p class="text-md text-gray-500 mt-2">Discover, trade, and collect digital assets.</p>
+        </div>
+
+        <!-- Marketplace Section -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-semibold mb-6">Marketplace Listings</h2>
+            <div id="marketplace-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- NFT listings will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <!-- My Collection Section -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-semibold mb-6">My Collection</h2>
+            <div id="my-collection-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- User's NFTs will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <!-- Action Forms Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- List NFT Form -->
+            <div class="card p-6 sm:p-8 space-y-4">
+                <h3 class="text-xl font-semibold">List an NFT for Sale</h3>
+                <div>
+                    <label for="list-token-id" class="block text-sm font-medium text-gray-700">Token ID</label>
+                    <input type="text" id="list-token-id" class="mt-1 block w-full rounded-lg input-field p-3" placeholder="e.g., #001" required>
+                </div>
+                <div>
+                    <label for="list-price" class="block text-sm font-medium text-gray-700">Price (MINIMA)</label>
+                    <input type="number" id="list-price" class="mt-1 block w-full rounded-lg input-field p-3" placeholder="e.g., 50.0" required>
+                </div>
+                <button id="list-button" class="w-full btn-primary py-3 font-semibold text-lg">
+                    List NFT
+                </button>
+            </div>
+
+            <!-- Place Bid Form -->
+            <div class="card p-6 sm:p-8 space-y-4">
+                <h3 class="text-xl font-semibold">Place a Bid on an NFT</h3>
+                <div>
+                    <label for="bid-listing-id" class="block text-sm font-medium text-gray-700">Listing ID</label>
+                    <input type="text" id="bid-listing-id" class="mt-1 block w-full rounded-lg input-field p-3" placeholder="e.g., LST_1" required>
+                </div>
+                <div>
+                    <label for="bid-amount" class="block text-sm font-medium text-gray-700">Bid Amount (MINIMA)</label>
+                    <input type="number" id="bid-amount" class="mt-1 block w-full rounded-lg input-field p-3" placeholder="e.g., 55.0" required>
+                </div>
+                <button id="bid-button" class="w-full btn-primary py-3 font-semibold text-lg">
+                    Place Bid
+                </button>
+            </div>
+        </div>
+
+        <div id="status-message" class="mt-8 text-center text-gray-600 font-medium">
+            Marketplace ready.
+        </div>
+    </div>
+
+    <script>
+        const marketplaceGrid = document.getElementById('marketplace-grid');
+        const myCollectionGrid = document.getElementById('my-collection-grid');
+        const listTokenIdInput = document.getElementById('list-token-id');
+        const listPriceInput = document.getElementById('list-price');
+        const listButton = document.getElementById('list-button');
+        const bidListingIdInput = document.getElementById('bid-listing-id');
+        const bidAmountInput = document.getElementById('bid-amount');
+        const bidButton = document.getElementById('bid-button');
+        const statusMessage = document.getElementById('status-message');
+
+        const userAddress = 'MxUserAddress';
+
+        let listings = {
+            'LST_1': { tokenId: '#005', price: 100, owner: 'MxSeller1', bids: [{ bidder: 'MxUserAddress', amount: 105 }] },
+            'LST_2': { tokenId: '#012', price: 75, owner: 'MxSeller2', bids: [] }
+        };
+
+        let myNFTs = ['#001', '#002'];
+
+        function renderNFT(nft, container, isForSale = false) {
+            const nftCard = document.createElement('div');
+            nftCard.className = 'card p-4 sm:p-6 text-center space-y-2 cursor-pointer transition-transform duration-200 hover:scale-105';
+            
+            const randomColor = Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+            nftCard.innerHTML = `
+                <div class="w-full h-40 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                    <img src="https://placehold.co/200x200/${randomColor}/000?text=${nft.tokenId.replace('#', '%23')}" alt="NFT Image" class="w-full h-full object-cover rounded-lg">
+                </div>
+                <div class="pt-2">
+                    <h4 class="font-semibold">Token ID ${nft.tokenId}</h4>
+                    ${isForSale ? `<p class="text-lg font-bold text-[#A08C7D]">${nft.price.toFixed(2)} MINIMA</p>` : ''}
+                    ${isForSale ? `<p class="text-sm text-gray-500">Listing ID: ${nft.listingId}</p>` : ''}
+                    ${isForSale && nft.bids && nft.bids.length > 0 ? `<p class="text-sm text-green-600 font-bold">Highest Bid: ${Math.max(...nft.bids.map(b => b.amount))} MINIMA</p>` : ''}
+                </div>
+            `;
+            container.appendChild(nftCard);
+        }
+
+        function updateMarketplace() {
+            marketplaceGrid.innerHTML = '';
+            for (const id in listings) {
+                const listing = listings[id];
+                const nft = {
+                    tokenId: listing.tokenId,
+                    price: listing.price,
+                    listingId: id,
+                    bids: listing.bids
+                };
+                renderNFT(nft, marketplaceGrid, true);
+            }
+        }
+
+        function updateMyCollection() {
+            myCollectionGrid.innerHTML = '';
+            myNFTs.forEach(tokenId => {
+                const nft = { tokenId: tokenId };
+                renderNFT(nft, myCollectionGrid, false);
+            });
+        }
+
+        listButton.addEventListener('click', () => {
+            const tokenId = listTokenIdInput.value.trim();
+            const price = parseFloat(listPriceInput.value);
+
+            if (!tokenId || isNaN(price) || price <= 0) {
+                statusMessage.textContent = 'Please enter a valid Token ID and price.';
+                return;
+            }
+
+            const newListingId = `LST_${Object.keys(listings).length + 1}`;
+            listings[newListingId] = {
+                tokenId: tokenId,
+                price: price,
+                owner: userAddress,
+                bids: []
+            };
+
+            statusMessage.textContent = `NFT ${tokenId} listed for ${price} MINIMA!`;
+            listTokenIdInput.value = '';
+            listPriceInput.value = '';
+            updateMarketplace();
+        });
+
+        bidButton.addEventListener('click', () => {
+            const listingId = bidListingIdInput.value.trim();
+            const bidAmount = parseFloat(bidAmountInput.value);
+
+            if (!listingId || isNaN(bidAmount) || bidAmount <= 0) {
+                statusMessage.textContent = 'Please enter a valid Listing ID and bid amount.';
+                return;
+            }
+
+            if (!listings[listingId]) {
+                statusMessage.textContent = 'Error: Listing not found.';
+                return;
+            }
+
+            const currentPrice = listings[listingId].price;
+            const highestBid = listings[listingId].bids.length > 0 ? Math.max(...listings[listingId].bids.map(b => b.amount)) : 0;
+            const minimumBid = Math.max(currentPrice, highestBid) + 1;
+
+            if (bidAmount < minimumBid) {
+                statusMessage.textContent = `Bid must be at least ${minimumBid} MINIMA.`;
+                return;
+            }
+
+            listings[listingId].bids.push({ bidder: userAddress, amount: bidAmount });
+            statusMessage.textContent = `Bid of ${bidAmount} MINIMA placed on ${listingId}.`;
+            bidListingIdInput.value = '';
+            bidAmountInput.value = '';
+            updateMarketplace();
+        });
+
+        // Initial render
+        updateMyCollection();
+        updateMarketplace();
+    </script>
+</body>
+</html>
