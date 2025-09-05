@@ -6,10 +6,6 @@
     <title>Primals NFT Marketplace</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: Warm Neutrals -->
-    <!-- Application Structure Plan: The application uses a dashboard-like structure with two main sections: "My Collection" and the "Marketplace". This was chosen to clearly separate the user's personal assets from the public trading space. The layout guides the user logically from viewing their own NFTs to exploring what's available for sale. Key interactions are card-based, allowing users to click on an NFT to view details or trigger a bid form, making the process intuitive and straightforward. -->
-    <!-- Visualization & Content Choices: Content is presented using a grid of cards, a familiar pattern for marketplaces. Each card represents a single NFT, displaying its unique ID and simulated image. Forms are used for "List" and "Bid" interactions. The entire display is dynamic, updating with new listings and bids via JavaScript. There are no complex charts or graphics, as the focus is on a direct trading experience. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -45,25 +41,15 @@
             <p class="text-md text-gray-500 mt-2">Discover, trade, and collect digital assets.</p>
         </div>
 
-        <!-- Marketplace Section -->
         <div class="mb-12">
             <h2 class="text-2xl font-semibold mb-6">Marketplace Listings</h2>
             <div id="marketplace-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                <!-- NFT listings will be dynamically inserted here -->
+                <!-- NFT listings from the backend will be dynamically inserted here -->
             </div>
+            <p id="no-listings-message" class="hidden text-center text-gray-500 mt-4">No NFTs are currently listed.</p>
         </div>
 
-        <!-- My Collection Section -->
-        <div class="mb-12">
-            <h2 class="text-2xl font-semibold mb-6">My Collection</h2>
-            <div id="my-collection-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                <!-- User's NFTs will be dynamically inserted here -->
-            </div>
-        </div>
-
-        <!-- Action Forms Section -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- List NFT Form -->
             <div class="card p-6 sm:p-8 space-y-4">
                 <h3 class="text-xl font-semibold">List an NFT for Sale</h3>
                 <div>
@@ -79,7 +65,6 @@
                 </button>
             </div>
 
-            <!-- Place Bid Form -->
             <div class="card p-6 sm:p-8 space-y-4">
                 <h3 class="text-xl font-semibold">Place a Bid on an NFT</h3>
                 <div>
@@ -97,13 +82,13 @@
         </div>
 
         <div id="status-message" class="mt-8 text-center text-gray-600 font-medium">
-            Marketplace ready.
+            Loading marketplace...
         </div>
     </div>
 
     <script>
         const marketplaceGrid = document.getElementById('marketplace-grid');
-        const myCollectionGrid = document.getElementById('my-collection-grid');
+        const noListingsMessage = document.getElementById('no-listings-message');
         const listTokenIdInput = document.getElementById('list-token-id');
         const listPriceInput = document.getElementById('list-price');
         const listButton = document.getElementById('list-button');
@@ -112,57 +97,58 @@
         const bidButton = document.getElementById('bid-button');
         const statusMessage = document.getElementById('status-message');
 
-        const userAddress = 'MxUserAddress';
+        const API_BASE_URL = 'http://127.0.0.1:5000/api';
+        const userAddress = 'MxUserAddress123';
 
-        let listings = {
-            'LST_1': { tokenId: '#005', price: 100, owner: 'MxSeller1', bids: [{ bidder: 'MxUserAddress', amount: 105 }] },
-            'LST_2': { tokenId: '#012', price: 75, owner: 'MxSeller2', bids: [] }
-        };
-
-        let myNFTs = ['#001', '#002'];
-
-        function renderNFT(nft, container, isForSale = false) {
+        // Helper function to render an NFT card
+        function renderNFT(nft, container) {
             const nftCard = document.createElement('div');
             nftCard.className = 'card p-4 sm:p-6 text-center space-y-2 cursor-pointer transition-transform duration-200 hover:scale-105';
             
             const randomColor = Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
             nftCard.innerHTML = `
                 <div class="w-full h-40 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
-                    <img src="https://placehold.co/200x200/${randomColor}/000?text=${nft.tokenId.replace('#', '%23')}" alt="NFT Image" class="w-full h-full object-cover rounded-lg">
+                    <img src="https://placehold.co/200x200/${randomColor}/000?text=${nft.token_id.replace('#', '%23')}" alt="NFT Image" class="w-full h-full object-cover rounded-lg">
                 </div>
                 <div class="pt-2">
-                    <h4 class="font-semibold">Token ID ${nft.tokenId}</h4>
-                    ${isForSale ? `<p class="text-lg font-bold text-[#A08C7D]">${nft.price.toFixed(2)} MINIMA</p>` : ''}
-                    ${isForSale ? `<p class="text-sm text-gray-500">Listing ID: ${nft.listingId}</p>` : ''}
-                    ${isForSale && nft.bids && nft.bids.length > 0 ? `<p class="text-sm text-green-600 font-bold">Highest Bid: ${Math.max(...nft.bids.map(b => b.amount))} MINIMA</p>` : ''}
+                    <h4 class="font-semibold">Token ID ${nft.token_id}</h4>
+                    <p class="text-lg font-bold text-[#A08C7D]">${nft.price.toFixed(2)} MINIMA</p>
+                    <p class="text-sm text-gray-500">Listing ID: ${nft.id}</p>
                 </div>
             `;
             container.appendChild(nftCard);
         }
 
-        function updateMarketplace() {
+        // Function to fetch and update marketplace listings
+        async function updateMarketplace() {
+            statusMessage.textContent = 'Fetching listings...';
             marketplaceGrid.innerHTML = '';
-            for (const id in listings) {
-                const listing = listings[id];
-                const nft = {
-                    tokenId: listing.tokenId,
-                    price: listing.price,
-                    listingId: id,
-                    bids: listing.bids
-                };
-                renderNFT(nft, marketplaceGrid, true);
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/marketplace/listings`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                if (data.listings && data.listings.length > 0) {
+                    data.listings.forEach(listing => {
+                        renderNFT(listing, marketplaceGrid);
+                    });
+                    statusMessage.textContent = 'Marketplace updated.';
+                    noListingsMessage.classList.add('hidden');
+                } else {
+                    noListingsMessage.classList.remove('hidden');
+                    statusMessage.textContent = 'Marketplace is empty.';
+                }
+            } catch (error) {
+                statusMessage.textContent = `Error fetching listings: ${error.message}`;
+                console.error('Error fetching listings:', error);
             }
         }
 
-        function updateMyCollection() {
-            myCollectionGrid.innerHTML = '';
-            myNFTs.forEach(tokenId => {
-                const nft = { tokenId: tokenId };
-                renderNFT(nft, myCollectionGrid, false);
-            });
-        }
-
-        listButton.addEventListener('click', () => {
+        // Event listener for listing a new NFT
+        listButton.addEventListener('click', async () => {
             const tokenId = listTokenIdInput.value.trim();
             const price = parseFloat(listPriceInput.value);
 
@@ -171,53 +157,45 @@
                 return;
             }
 
-            const newListingId = `LST_${Object.keys(listings).length + 1}`;
-            listings[newListingId] = {
-                tokenId: tokenId,
-                price: price,
-                owner: userAddress,
-                bids: []
-            };
-
-            statusMessage.textContent = `NFT ${tokenId} listed for ${price} MINIMA!`;
-            listTokenIdInput.value = '';
-            listPriceInput.value = '';
-            updateMarketplace();
+            statusMessage.textContent = 'Listing NFT...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/marketplace/list-nft`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token_id: tokenId,
+                        owner_address: userAddress,
+                        price: price
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    statusMessage.textContent = `NFT ${data.token_id} listed for ${data.price} MINIMA!`;
+                    listTokenIdInput.value = '';
+                    listPriceInput.value = '';
+                    // Refresh the marketplace to show the new listing
+                    updateMarketplace();
+                } else {
+                    throw new Error(data.error || 'Failed to list NFT.');
+                }
+            } catch (error) {
+                statusMessage.textContent = `Error: ${error.message}`;
+                console.error('Error listing NFT:', error);
+            }
         });
 
+        // The bid functionality is currently client-side only. 
+        // For a full implementation, you would need a new backend endpoint
+        // to handle the bid and save it to the database.
         bidButton.addEventListener('click', () => {
-            const listingId = bidListingIdInput.value.trim();
-            const bidAmount = parseFloat(bidAmountInput.value);
-
-            if (!listingId || isNaN(bidAmount) || bidAmount <= 0) {
-                statusMessage.textContent = 'Please enter a valid Listing ID and bid amount.';
-                return;
-            }
-
-            if (!listings[listingId]) {
-                statusMessage.textContent = 'Error: Listing not found.';
-                return;
-            }
-
-            const currentPrice = listings[listingId].price;
-            const highestBid = listings[listingId].bids.length > 0 ? Math.max(...listings[listingId].bids.map(b => b.amount)) : 0;
-            const minimumBid = Math.max(currentPrice, highestBid) + 1;
-
-            if (bidAmount < minimumBid) {
-                statusMessage.textContent = `Bid must be at least ${minimumBid} MINIMA.`;
-                return;
-            }
-
-            listings[listingId].bids.push({ bidder: userAddress, amount: bidAmount });
-            statusMessage.textContent = `Bid of ${bidAmount} MINIMA placed on ${listingId}.`;
-            bidListingIdInput.value = '';
-            bidAmountInput.value = '';
-            updateMarketplace();
+             statusMessage.textContent = 'Bidding functionality is not yet connected to the backend.';
         });
 
-        // Initial render
-        updateMyCollection();
-        updateMarketplace();
+        // Initial fetch of listings when the page loads
+        document.addEventListener('DOMContentLoaded', updateMarketplace);
     </script>
 </body>
-</html>
+    </html>
+    
