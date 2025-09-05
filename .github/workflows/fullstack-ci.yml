@@ -52,8 +52,17 @@ jobs:
   # Solidity Static Analysis (using Slither)
   contracts-audit:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Hardhat and dependencies
+        run: npm ci
       - name: Install solc from PPA and Slither
         run: |
           sudo add-apt-repository -y ppa:ethereum/ethereum
@@ -89,4 +98,3 @@ jobs:
         run: npm test -- --watchAll=false || true
       - name: Build React app
         run: npm run build
-        
