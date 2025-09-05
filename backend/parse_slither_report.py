@@ -3,7 +3,7 @@ import json
 
 def parse_slither_report(report_file="slither-report.json"):
     """
-    Parses a Slither JSON report and prints a formatted summary of the findings.
+Parses a Slither JSON report and prints a formatted summary of the findings.
     """
     try:
         with open(report_file, "r") as f:
