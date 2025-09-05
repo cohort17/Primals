@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Primals Bridge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF8; /* Warm off-white */
+            color: #4B4B4B;
+        }
+        .card {
+            background-color: #FFFFFF;
+            border: 1px solid #F0EAE1;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-radius: 1rem;
+        }
+        .btn-primary {
+            background-color: #A08C7D; /* Muted brown */
+            color: #FFFFFF;
+            transition: background-color 0.3s, transform 0.2s;
+            border-radius: 0.5rem;
+        }
+        .btn-primary:hover {
+            background-color: #8A7667;
+            transform: translateY(-2px);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .input-field {
+            border: 1px solid #E5DED6;
+            background-color: #FFFCF9;
+        }
+    </style>
+</head>
+<body class="antialiased flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8">
+    <div class="container mx-auto max-w-2xl">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-[#A08C7D]">Primals Cross-Chain Bridge</h1>
+            <p class="text-md text-gray-500 mt-2">Transfer your wMINIMA tokens to an EVM-compatible chain.</p>
+        </div>
+
+        <div class="card p-6 sm:p-8 space-y-8">
+            <!-- Input Section -->
+            <div>
+                <h2 class="text-2xl font-semibold mb-4 text-center">Initiate Transfer</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="amount-input" class="block text-sm font-medium text-gray-700">Amount (wMINIMA)</label>
+                        <input type="number" id="amount-input" class="mt-1 block w-full rounded-md input-field p-3 focus:border-[#A08C7D] focus:ring focus:ring-[#A08C7D] focus:ring-opacity-50" placeholder="e.g., 50.5" min="0.01" step="0.01">
+                        <p id="input-message" class="mt-2 text-sm text-red-500 hidden">Please enter a valid amount.</p>
+                    </div>
+                    <div>
+                        <label for="evm-address-input" class="block text-sm font-medium text-gray-700">EVM Recipient Address</label>
+                        <input type="text" id="evm-address-input" class="mt-1 block w-full rounded-md input-field p-3 focus:border-[#A08C7D] focus:ring focus:ring-[#A08C7D] focus:ring-opacity-50" placeholder="0x..." minlength="42" maxlength="42">
+                        <p id="address-message" class="mt-2 text-sm text-red-500 hidden">Please enter a valid EVM address.</p>
+                    </div>
+                    <button id="bridge-button" class="w-full btn-primary py-3 font-semibold text-lg">
+                        Bridge Tokens
+                    </button>
+                </div>
+            </div>
+
+            <hr class="border-gray-200">
+
+            <!-- Status Section -->
+            <div>
+                <h2 class="text-2xl font-semibold mb-4 text-center">Transfer Status</h2>
+                <div id="status-container" class="space-y-4">
+                    <div id="step-1" class="flex items-center text-gray-400">
+                        <span class="text-2xl mr-4">1️⃣</span>
+                        <div>
+                            <p class="font-semibold">Lock Tokens on Minima</p>
+                            <p class="text-sm">Awaiting user initiation...</p>
+                        </div>
+                    </div>
+                    <div id="step-2" class="flex items-center text-gray-400">
+                        <span class="text-2xl mr-4">2️⃣</span>
+                        <div>
+                            <p class="font-semibold">Relay Transaction to EVM</p>
+                            <p class="text-sm">...</p>
+                        </div>
+                    </div>
+                    <div id="step-3" class="flex items-center text-gray-400">
+                        <span class="text-2xl mr-4">3️⃣</span>
+                        <div>
+                            <p class="font-semibold">Mint Wrapped Tokens</p>
+                            <p class="text-sm">...</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="success-message" class="hidden mt-6 text-center">
+                    <p class="text-green-600 font-bold text-lg">✅ Bridge Successful!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('bridge-button').addEventListener('click', startBridge);
+
+        function resetStatus() {
+            const steps = [
+                { id: 'step-1', icon: '1️⃣', text: 'Awaiting user initiation...', color: 'text-gray-400' },
+                { id: 'step-2', icon: '2️⃣', text: '...', color: 'text-gray-400' },
+                { id: 'step-3', icon: '3️⃣', text: '...', color: 'text-gray-400' }
+            ];
+
+            steps.forEach(step => {
+                const element = document.getElementById(step.id);
+                element.classList.remove('text-green-600', 'text-red-500');
+                element.classList.add(step.color);
+                element.querySelector('span').textContent = step.icon;
+                element.querySelector('p:last-child').textContent = step.text;
+            });
+
+            document.getElementById('success-message').classList.add('hidden');
+            document.getElementById('input-message').classList.add('hidden');
+            document.getElementById('address-message').classList.add('hidden');
+        }
+
+        function updateStep(stepId, icon, text, color) {
+            const stepElement = document.getElementById(stepId);
+            stepElement.classList.remove('text-gray-400');
+            stepElement.classList.add(color);
+            stepElement.querySelector('span').textContent = icon;
+            stepElement.querySelector('p:last-child').textContent = text;
+        }
+
+        function startBridge() {
+            resetStatus();
+            const amountInput = document.getElementById('amount-input');
+            const addressInput = document.getElementById('evm-address-input');
+            const amount = parseFloat(amountInput.value);
+            const evmAddress = addressInput.value.trim();
+
+            if (isNaN(amount) || amount <= 0) {
+                document.getElementById('input-message').classList.remove('hidden');
+                return;
+            }
+
+            if (!evmAddress || evmAddress.length !== 42 || !evmAddress.startsWith('0x')) {
+                 document.getElementById('address-message').classList.remove('hidden');
+                return;
+            }
+
+            // Step 1: Lock tokens on Minima
+            updateStep('step-1', '⏳', 'Initiating lock on Minima...', 'text-gray-400');
+            
+            setTimeout(() => {
+                updateStep('step-1', '✅', 'Tokens successfully locked on Minima!', 'text-green-600');
+            }, 1500);
+
+            // Step 2: Relay transaction
+            setTimeout(() => {
+                updateStep('step-2', '⏳', 'Relaying transaction to EVM...', 'text-gray-400');
+            }, 2000);
+
+            setTimeout(() => {
+                updateStep('step-2', '✅', 'Transaction relayed to EVM network!', 'text-green-600');
+            }, 4000);
+
+            // Step 3: Mint wrapped tokens
+            setTimeout(() => {
+                updateStep('step-3', '⏳', 'Minting wrapped tokens on EVM...', 'text-gray-400');
+            }, 4500);
+
+            setTimeout(() => {
+                updateStep('step-3', '✅', 'Tokens minted and sent to your address!', 'text-green-600');
+                document.getElementById('success-message').classList.remove('hidden');
+            }, 6000);
+        }
+    </script>
+</body>
+</html>
