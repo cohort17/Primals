@@ -52,4 +52,3 @@ if __name__ == "__main__":
     metadata = "ipfs://Qm..."
 
     print(mint_nft(owner, metadata, TOKEN_ID))
-     
