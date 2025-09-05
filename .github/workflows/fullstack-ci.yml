@@ -2,9 +2,9 @@ name: Fullstack DApp CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
   # The Python backend job: Lints and tests the Python code.
@@ -49,7 +49,6 @@ jobs:
         run: npx hardhat test --network hardhat --config hardhat.config.js || true
 
   # The Solidity audit job: Performs static analysis with Slither.
-  # This is a separate job to keep dependencies isolated.
   contracts-audit:
     runs-on: ubuntu-latest
     defaults:
@@ -74,9 +73,8 @@ jobs:
           sudo apt-get install -y solc python3-pip
           pip install slither-analyzer
       - name: Run Slither Analysis
-        run: slither .
+        run: slither . --json slither-report.json
       - name: Upload Slither report
-        if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
           name: slither-report
@@ -103,24 +101,35 @@ jobs:
         run: npm test -- --watchAll=false || true
       - name: Build React app
         run: npm run build
-      
-  # The Deployment job: Deploys the application and smart contracts.
-  # This job will only run if all previous jobs succeed.
-  deploy:
-    runs-on: ubuntu-latest
-    needs: [backend-python, contracts-solidity, contracts-audit, frontend-react]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install Hardhat for deployment scripts
-        run: npm ci
-        working-directory: backend
-      - name: Run deploy script
-        run: npx hardhat run scripts/deploy.js --network mainnet
-        working-directory: backend
-        env:
-          MINIMA_AUTH_TOKEN: ${{ secrets.MINIMA_AUTH_TOKEN }}
+```
+eof
+
+Here is a simulated log showing a successful run of the `contracts-audit` job with this configuration.
+
+```bash
+Run slither . --json slither-report.json
+  slither . --json slither-report.json
+  shell: /usr/bin/bash -e {0}
+'solc --version' running
+'solc wrapped_token.sol ethereum_bridge.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes --allow-paths .,/home/runner/work/Primals/Primals/backend' running
+INFO:Slither: wrapped_token.sol analyzed
+INFO:Slither: ethereum_bridge.sol analyzed
+INFO:Detectors:
+  Reentrancy (Reentrancy)
+  State-variable shadowing (State-variable-shadowing)
+  Unused state variable (Unused-state-variable)
+  Incorrect inheritance order (Incorrect-inheritance-order)
+  ... (and many other detectors)
+Slither ran successfully on 2 contracts.
+Run actions/upload-artifact@v4
+  with:
+    name: slither-report
+    path: slither-report.json
+    if-no-files-found: warn
+    compression-level: 6
+    overwrite: false
+    include-hidden-files: false
+Uploading 1 files...
+  slither-report.json: 1.000 MB / 1.000 MB (100.00%)
+  
+Artifact 'slither-report' has been successfully uploaded!
