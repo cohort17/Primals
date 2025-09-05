@@ -23,7 +23,7 @@ def parse_slither_report(report_file="slither-report.json"):
         impact = issue.get("impact", "N/A")
         check = issue.get("check", "N/A")
         description = issue.get("description", "No description available.")
-        
+
         # Safely handle source mapping
         source_location = "N/A"
         elements = issue.get("elements", [])
@@ -32,7 +32,7 @@ def parse_slither_report(report_file="slither-report.json"):
             filename = source_mapping.get("filename", "N/A")
             lines = source_mapping.get("lines", ["N/A"])[0]
             source_location = f"{filename}:{lines}"
-            
+
         print(f"\n[Slither] Severity: {impact}")
         print(f"Check: {check}")
         print(f"Description: {description}")
