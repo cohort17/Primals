@@ -1,106 +1,96 @@
-import json
 import requests
-import os
+import json
+from typing import Dict, Any, Union
 
-class MinimaWallet:
+# This is a placeholder base URL for the Minima node's API.
+# In a real-world application, this would be configured to point to your running Minima node.
+MINIMA_API_URL = "http://localhost:9002"
+
+def get_status() -> Dict[str, Any]:
     """
-    Manages interactions with a Minima wallet via its REST API.
+    Fetches the current status of the Minima node.
+    This is useful for checking if the node is running and synchronized.
     """
+    try:
+        response = requests.get(f"{MINIMA_API_URL}/status")
+        response.raise_for_status()  # Raises an HTTPError for bad responses (4xx or 5xx)
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching Minima status: {e}")
+        return {"error": str(e)}
 
-    def __init__(self, api_host='http://127.0.0.1:9001'):
-        self.api_host = api_host
-        # The API key can be stored as an environment variable or a config file.
-        # This will need to be configured for production environments.
-        self.api_key = os.getenv('MINIMA_API_KEY')
+def get_balance(address: str = None) -> Union[Dict[str, Any], None]:
+    """
+    Fetches the balance for a specific address or all balances if no address is provided.
+    
+    Args:
+        address (str): The Minima address to check the balance for.
+                       If None, it fetches the balances for all addresses.
+    """
+    try:
+        if address:
+            params = {"address": address}
+            response = requests.get(f"{MINIMA_API_URL}/balance", params=params)
+        else:
+            response = requests.get(f"{MINIMA_API_URL}/balance")
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching balance: {e}")
+        return None
 
-    def _call_api(self, endpoint, payload=None):
-        """
-        A private method to handle API calls to the Minima node.
-        """
-        headers = {
-            'Content-Type': 'application/json',
-            'X-Api-Key': self.api_key
+def send_transaction(recipient_address: str, amount: float, token_id: str = "0x00") -> Dict[str, Any]:
+    """
+    Sends a transaction from the wallet to a recipient.
+    
+    Args:
+        recipient_address (str): The Minima address of the recipient.
+        amount (float): The amount of tokens to send.
+        token_id (str): The ID of the token to send. Default is "0x00" for Minima.
+    """
+    try:
+        # The 'send' command requires URL-encoding. The requests library handles this.
+        params = {
+            "address": recipient_address,
+            "amount": amount,
+            "tokenid": token_id
         }
-        url = f"{self.api_host}/{endpoint}"
         
-        try:
-            response = requests.post(url, data=json.dumps(payload), headers=headers)
-            response.raise_for_status()  # This will raise an HTTPError for bad responses (4xx or 5xx)
-            return response.json()
-        except requests.exceptions.HTTPError as err:
-            print(f"HTTP Error: {err}")
-            return None
-        except requests.exceptions.RequestException as err:
-            print(f"Request Error: {err}")
-            return None
+        # The Minima API endpoint for sending a transaction is 'send'.
+        response = requests.get(f"{MINIMA_API_URL}/send", params=params)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error sending transaction: {e}")
+        return {"error": str(e)}
 
-    def get_balance(self):
-        """
-        Retrieves the current balance of the Minima wallet.
-        """
-        # TODO: Implement the logic to call the Minima API's 'balance' endpoint
-        # The API documentation for Minima will specify the exact payload and endpoint.
-        # You should parse the response to extract the token balances.
-        print("Getting balance...")
-        # Placeholder for API call
-        # response = self._call_api('balance')
-        # if response and 'status' in response and response['status'] == 'success':
-        #     return response['response']
-        return "Balance retrieval not yet implemented."
-
-    def send_token(self, recipient_address, amount, token_id="0x00"):
-        """
-        Sends a specified amount of a token to a recipient address.
-        :param recipient_address: The Minima address of the recipient.
-        :param amount: The amount of the token to send.
-        :param token_id: The unique identifier of the token.
-        """
-        # TODO: Implement the logic to call the Minima API's 'send' or similar endpoint.
-        # Ensure you handle the response and confirm the transaction was successful.
-        print(f"Sending {amount} of token {token_id} to {recipient_address}...")
-        # Placeholder for API call
-        # payload = {
-        #     "to": recipient_address,
-        #     "amount": amount,
-        #     "tokenid": token_id
-        # }
-        # response = self._call_api('send', payload)
-        # if response and 'status' in response and response['status'] == 'success':
-        #     return response['response']
-        return "Send functionality not yet implemented."
-
-    def get_transaction_history(self):
-        """
-        Retrieves the transaction history for the Minima wallet.
-        """
-        # TODO: Implement the logic to call the Minima API's 'history' endpoint
-        # and parse the transaction history data.
-        print("Getting transaction history...")
-        # Placeholder for API call
-        # response = self._call_api('history')
-        # if response and 'status' in response and response['status'] == 'success':
-        #     return response['response']
-        return "Transaction history retrieval not yet implemented."
-
-    def get_wallet_address(self):
-        """
-        Retrieves the main wallet address.
-        """
-        # TODO: Implement a method to get the wallet address.
-        # This is a critical first step for the UI.
-        print("Getting wallet address...")
-        return "Wallet address retrieval not yet implemented."
-
+# --- Example Usage (simulated) ---
 if __name__ == '__main__':
-    # This block allows you to run this file directly for testing.
-    # To run, you must have a Minima node running with a valid API key.
-    # Set the MINIMA_API_KEY environment variable.
-    wallet = MinimaWallet()
+    print("--- Minima Wallet Module Test ---")
+
+    # Simulate fetching the node status
+    status = get_status()
+    if "error" in status:
+        print(f"Failed to connect to Minima node. Please ensure it is running at {MINIMA_API_URL}.")
+    else:
+        print(f"Node Status: {status.get('mini_sync_chain_length', 'N/A')} blocks synchronized.")
+
+    # Simulate fetching balances
+    test_address = "Mx1234567890abcdef1234567890abcdef12345678"
+    all_balances = get_balance()
+    if all_balances:
+        print("\nAll Balances:")
+        print(json.dumps(all_balances, indent=4))
     
-    # Example usage:
-    # balance = wallet.get_balance()
-    # print(f"Wallet balance: {balance}")
-    
-    # history = wallet.get_transaction_history()
-    # print(f"Wallet history: {history}")
-    
+    # Simulate sending a transaction
+    # Note: This will fail if a node isn't running, which is expected for this demo.
+    send_result = send_transaction(
+        recipient_address="Mx_RecipientAddress_123456789",
+        amount=5.5,
+        token_id="0x00"
+    )
+    if "error" in send_result:
+        print(f"\nSimulated send transaction failed (expected without a running node): {send_result['error']}")
+    else:
+        print("\nSimulated send transaction result:")
+        print(json.dumps(send_result, indent=4))
